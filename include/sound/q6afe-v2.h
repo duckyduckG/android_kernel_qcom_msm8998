@@ -238,6 +238,8 @@ enum {
 	/* IDX 167 -> 168 */
 	IDX_RT_PROXY_PORT_002_RX,
 	IDX_RT_PROXY_PORT_002_TX,
+	/* xiaomi */
+	IDX_AFE_PORT_ID_PSEUDOPORT_01, //xiaomi
 	AFE_MAX_PORTS
 };
 
