@@ -1,4 +1,5 @@
 /* Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2019 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -564,7 +565,11 @@ static void msm_isp_cfg_framedrop_reg(
 		framedrop_period = stream_info->current_framedrop_period;
 
 	if (MSM_VFE_STREAM_STOP_PERIOD != framedrop_period)
+	{
 		framedrop_pattern = 0x1;
+		if(framedrop_period > 1)
+		framedrop_pattern = framedrop_pattern << (framedrop_period-1);
+	}
 
 	BUG_ON(0 == framedrop_period);
 	for (i = 0; i < stream_info->num_isp; i++) {
@@ -613,8 +618,7 @@ static int msm_isp_composite_irq(struct vfe_device *vfe_dev,
  *
  * Returns void
  */
-static void msm_isp_update_framedrop_reg(struct msm_vfe_axi_stream *stream_info,
-		uint32_t drop_reconfig)
+static void msm_isp_update_framedrop_reg(struct msm_vfe_axi_stream *stream_info)
 {
 	if (stream_info->stream_type == BURST_STREAM) {
 		if (stream_info->runtime_num_burst_capture == 0 ||
@@ -624,7 +628,8 @@ static void msm_isp_update_framedrop_reg(struct msm_vfe_axi_stream *stream_info,
 				MSM_VFE_STREAM_STOP_PERIOD;
 	}
 
-	if (stream_info->undelivered_request_cnt > 0)
+	if (stream_info->undelivered_request_cnt > 0 &&
+		drop_reconfig != 1)
 		stream_info->current_framedrop_period =
 			MSM_VFE_STREAM_STOP_PERIOD;
 	/*
@@ -695,7 +700,7 @@ void msm_isp_process_reg_upd_epoch_irq(struct vfe_device *vfe_dev,
 						temp->isp_page->drop_reconfig;
 				}
 				msm_isp_update_framedrop_reg(stream_info,
-					drop_reconfig);
+					vfe_dev->isp_page->drop_reconfig);
 			}
 			break;
 		default:
@@ -3808,6 +3813,9 @@ static int msm_isp_request_frame(struct vfe_device *vfe_dev,
 			}
 			pr_err_ratelimited("%s:%d fail to cfg HAL buffer\n",
 				__func__, __LINE__);
+			queue_req->cmd_used = 0;
+			list_del(&queue_req->list);
+			stream_info->request_q_cnt--;
 			return rc;
 		}
 	} else {
@@ -4023,7 +4031,9 @@ int msm_isp_update_axi_stream(struct vfe_device *vfe_dev, void *arg)
 			update_cmd->update_type !=
 			UPDATE_STREAM_REMOVE_BUFQ &&
 			update_cmd->update_type !=
-			UPDATE_STREAM_SW_FRAME_DROP) {
+			UPDATE_STREAM_SW_FRAME_DROP &&
+			update_cmd->update_type !=
+			UPDATE_STREAM_REQUEST_FRAMES_VER2) {
 			pr_err("%s: Invalid stream state %d, update cmd %d\n",
 				__func__, stream_info->state,
 				stream_info->stream_id);
