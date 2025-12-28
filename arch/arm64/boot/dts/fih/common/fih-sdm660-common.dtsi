@@ -1,3 +1,13 @@
+&firmware {
+    android {
+        fstab {
+            vendor {
+                fsmgr_flags = "wait,slotselect";
+            };
+        };
+    };
+};
+
 &mem_client_3_size {
     /delete-property/ qcom,allocate-on-request;
     qcom,allocate-boot-time;
