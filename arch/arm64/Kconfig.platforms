@@ -183,4 +183,11 @@ config ARCH_ZYNQMP
 	help
 	  This enables support for Xilinx ZynqMP Family
 
+config FIH_SDM630_SDM660_PROJS
+	bool "FIH SDM660"
+	select ARCH_SDM630
+	select ARCH_SDM660
+	help
+		Support for FIH SDM660 devices
+
 endmenu
