@@ -14,6 +14,10 @@ dts-dirs += rockchip
 dts-dirs += sprd
 dts-dirs += xilinx
 
+ifeq ($(CONFIG_FIH_SDM630_SDM660_PROJS),y)
+dts-dirs += fih
+endif
+
 subdir-y	:= $(dts-dirs)
 
 dtstree		:= $(srctree)/$(src)
