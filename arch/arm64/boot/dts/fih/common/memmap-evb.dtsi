@@ -2,6 +2,17 @@
 
 / {
 	reserved-memory {
+		ramoops: ramoops@ACB00000 {
+			compatible = "removed-dma-pool", "ramoops";
+			no-map;
+			reg = <0 0xACB00000 0 0x00200000>;
+			record-size = <0x1000>;
+			console-size = <0x40000>;
+			ftrace-size = <0x0>;
+			pmsg-size = <0x0>;
+			ecc-size = <0x0>;
+			status = "ok";
+		};
 		fih_nv: fih_nv@AC000000 {
 			compatible = "removed-dma-pool";
 			no-map;
@@ -11,11 +22,6 @@
 			compatible = "removed-dma-pool";
 			no-map;
 			reg = <0 0xAC800000 0 0x00300000>;
-		};
-		pstore_region: pstore_region@ACB00000 {
-			compatible = "removed-dma-pool";
-			no-map;
-			reg = <0 0xACB00000 0 0x00200000>;
 		};
 	};
 };
