@@ -20,5 +20,12 @@
 void msm_set_restart_mode(int mode);
 extern int pmic_reset_irq;
 
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+/* FIH, to support fih apr */
+unsigned int restart_reason_rd(void);
+void restart_reason_wt(unsigned int rere);
+/* FIH, to support fih apr */
+#endif
+
 #endif
 
