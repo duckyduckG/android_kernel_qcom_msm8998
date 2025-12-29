@@ -597,6 +597,12 @@ static int qpnp_rtc_probe(struct platform_device *pdev)
 
 	dev_set_drvdata(&pdev->dev, rtc_dd);
 
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_FIH_MT_SLEEP)
+	/* Need to init wakeup capability before register rtc device
+		for create rtc/wakealarm sysfs in default */
+	device_init_wakeup(&pdev->dev, 1);
+#endif
+
 	/* Register the RTC device */
 	rtc_dd->rtc = rtc_device_register("qpnp_rtc", &pdev->dev,
 					  rtc_ops, THIS_MODULE);
@@ -616,7 +622,9 @@ static int qpnp_rtc_probe(struct platform_device *pdev)
 		goto fail_req_irq;
 	}
 
+#if !defined(CONFIG_FIH_SDM630_SDM660_PROJS) && !defined(CONFIG_FIH_MT_SLEEP)
 	device_init_wakeup(&pdev->dev, 1);
+#endif
 	enable_irq_wake(rtc_dd->rtc_alarm_irq);
 
 	dev_dbg(&pdev->dev, "Probe success !!\n");
