@@ -891,6 +891,10 @@ static int usb_icl_vote_callback(struct votable *votable, void *data,
 		power_supply_set_property(chip->main_psy,
 				POWER_SUPPLY_PROP_CURRENT_MAX,
 				&pval);
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+		/* wait for ICL change */
+		msleep(20);
+#endif
 	}
 
 	/* set the effective ICL */
