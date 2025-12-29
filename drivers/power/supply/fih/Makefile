@@ -1,0 +1,3 @@
+obj-$(CONFIG_CHARGER_BQ25600_SLAVE)	+= bq25600_slave.o
+obj-$(CONFIG_WIRELESS_CHARGER_STWLC33)	+= stwlc33_wl_charger.o
+obj-$(CONFIG_WIRELESS_CHARGER_P9221)  += p9221_wl_charger.o
