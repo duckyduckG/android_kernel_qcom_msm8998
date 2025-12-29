@@ -299,7 +299,12 @@ static void usb_set_lpm_sel(struct usb_device *udev,
 	udev_lpm_params->sel = total_sel;
 }
 
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+//20171108@Bobihlee from QC can't support 0201 LPM.
+static void __maybe_unused usb_set_lpm_parameters(struct usb_device *udev)
+#else
 static void usb_set_lpm_parameters(struct usb_device *udev)
+#endif
 {
 	struct usb_hub *hub;
 	unsigned int port_to_port_delay;
@@ -4644,11 +4649,17 @@ hub_port_init(struct usb_hub *hub, struct usb_device *udev, int port1,
 	usb_detect_quirks(udev);
 
 	if (udev->wusb == 0 && le16_to_cpu(udev->descriptor.bcdUSB) >= 0x0201) {
+		//20171108@Bobihlee from QC can't support 0201 LPM. ,Begin
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+		dev_dbg(&udev->dev, "from QC can't support 0201 LPM \n");
+#else
 		retval = usb_get_bos_descriptor(udev);
 		if (!retval) {
 			udev->lpm_capable = usb_device_supports_lpm(udev);
 			usb_set_lpm_parameters(udev);
 		}
+#endif
+		//20171108@Bobihlee from QC can't support 0201 LPM. ,End
 	}
 
 	retval = 0;
