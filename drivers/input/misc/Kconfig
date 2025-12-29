@@ -798,6 +798,13 @@ config INPUT_SOC_BUTTON_ARRAY
 	  To compile this driver as a module, choose M here: the
 	  module will be called soc_button_array.
 
+config INPUT_DRV2605_HAPTICS
+	tristate "TI DRV2605 haptic driver"
+	depends on I2C && SYSFS
+	help
+	  If you say yes here you get support for the TI DRV2605
+	  haptic driver.
+
 config INPUT_DRV260X_HAPTICS
 	tristate "TI DRV260X haptics support"
 	depends on INPUT && I2C
