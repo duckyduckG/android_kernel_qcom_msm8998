@@ -1211,6 +1211,15 @@ static void mmc_sd_detect(struct mmc_host *host)
 	BUG_ON(!host);
 	BUG_ON(!host->card);
 
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+#if defined(CONFIG_MMC_BLOCK_DEFERRED_RESUME)
+	if (mmc_bus_needs_resume(host)) 
+		mmc_resume_bus(host); 
+#endif
+
+	mmc_power_up(host, host->ocr_avail);
+#endif
+
 	/*
 	 * Try to acquire claim host. If failed to get the lock in 2 sec,
 	 * just return; This is to ensure that when this call is invoked

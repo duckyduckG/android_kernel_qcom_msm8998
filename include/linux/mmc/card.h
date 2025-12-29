@@ -702,6 +702,9 @@ static inline bool mmc_enable_qca9377_settings(const struct mmc_card *c)
 }
 
 #define mmc_card_name(c)	((c)->cid.prod_name)
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_FIH_EMMC)
+#define mmc_card_manfid(c)	((c)->cid.manfid)
+#endif
 #define mmc_card_id(c)		(dev_name(&(c)->dev))
 
 #define mmc_dev_to_card(d)	container_of(d, struct mmc_card, dev)
