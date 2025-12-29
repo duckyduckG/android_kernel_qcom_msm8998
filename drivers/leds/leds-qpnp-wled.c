@@ -27,6 +27,10 @@
 #include <linux/leds-qpnp-wled.h>
 #include <linux/qpnp/qpnp-revid.h>
 
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+#include <linux/gpio.h>
+#endif
+
 /* base addresses */
 #define QPNP_WLED_CTRL_BASE		"qpnp-wled-ctrl-base"
 #define QPNP_WLED_SINK_BASE		"qpnp-wled-sink-base"
@@ -749,6 +753,9 @@ static int qpnp_wled_module_en(struct qpnp_wled *wled,
 			wled->ovp_irq_disabled = false;
 		}
 	} else {
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+	usleep_range(5000,6000); //FIH, Delay for disable
+#endif
 		if (wled->ovp_irq > 0 && !wled->ovp_irq_disabled) {
 			disable_irq(wled->ovp_irq);
 			wled->ovp_irq_disabled = true;
@@ -1043,6 +1050,57 @@ static ssize_t qpnp_wled_fs_curr_ua_store(struct device *dev,
 
 	return count;
 }
+
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+//SW4-HL-Display-HDR-SetFsCurr-00+{_20180515
+struct qpnp_wled *g_wled = NULL;
+int qpnp_wled_fs_curr_ua_set(int data)
+{
+	int i, rc;
+	u8 reg;
+
+	pr_err("[HL]%s, %d\n", __func__, __LINE__);
+	
+	for (i = 0; i < g_wled->max_strings; i++) 
+	{
+		if (data < QPNP_WLED_FS_CURR_MIN_UA)
+			data = QPNP_WLED_FS_CURR_MIN_UA;
+		else if (data > QPNP_WLED_FS_CURR_MAX_UA)
+			data = QPNP_WLED_FS_CURR_MAX_UA;
+
+		reg = data / QPNP_WLED_FS_CURR_STEP_UA;
+		pr_err("[HL]%s, %d\n", __func__, __LINE__);
+		rc = qpnp_wled_masked_write_reg(g_wled,
+			QPNP_WLED_FS_CURR_REG(g_wled->sink_base, i),
+			QPNP_WLED_FS_CURR_MASK, reg);
+		if (rc < 0)
+		{
+			pr_err("[HL]%s, %d: qpnp_wled_masked_write_reg fail!\n", __func__, __LINE__);
+			return rc;
+		}
+	}
+
+	pr_err("[HL]%s, %d\n", __func__, __LINE__);
+
+	g_wled->fs_curr_ua = data;
+
+	pr_err("[HL]%s, %d\n", __func__, __LINE__);
+
+	rc = qpnp_wled_sync_reg_toggle(g_wled);
+	if (rc < 0) 
+	{
+		//dev_err(&g_wled->pdev->dev, "Failed to toggle sync reg %d\n", rc);
+		pr_err("[HL]%s, %d: Failed to toggle sync reg %d\n", __func__, __LINE__, rc);
+		return rc;
+	}
+
+	pr_err("[HL]%s, %d\n", __func__, __LINE__);
+
+	return rc;
+}
+EXPORT_SYMBOL(qpnp_wled_fs_curr_ua_set);
+//SW4-HL-Display-HDR-SetFsCurr-00+}_20180515
+#endif
 
 /* sysfs attributes exported by wled */
 static struct device_attribute qpnp_wled_attrs[] = {
@@ -2245,6 +2303,9 @@ static int qpnp_wled_config(struct qpnp_wled *wled)
 	return 0;
 }
 
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+int g_wled_fs_curr_ua = 0;	//SW4-HL-Display-HDR-SetFsCurr-00+_20180515
+#endif
 /* parse wled dtsi parameters */
 static int qpnp_wled_parse_dt(struct qpnp_wled *wled)
 {
@@ -2563,11 +2624,26 @@ static int qpnp_wled_parse_dt(struct qpnp_wled *wled)
 	rc = of_property_read_u32(pdev->dev.of_node,
 			"qcom,fs-curr-ua", &temp_val);
 	if (!rc) {
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+		//ZZDC sunqiupeng modify for set led current@20180126 start
+		if(strstr(saved_command_line, "androidboot.device=PL2") != NULL && gpio_get_value(12) != 0){
+			//It is PL2 HLT panel,set max led current as 15ma
+			wled->fs_curr_ua = 15000;
+		}else{
+			wled->fs_curr_ua = temp_val;
+		}
+		//ZZDC sunqiupeng modify for set led current@20180126 end
+#else
 		wled->fs_curr_ua = temp_val;
+#endif
 	} else if (rc != -EINVAL) {
 		dev_err(&pdev->dev, "Unable to read full scale current\n");
 		return rc;
 	}
+
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+	g_wled_fs_curr_ua = wled->fs_curr_ua;	//SW4-HL-Display-HDR-SetFsCurr-00+_20180515
+#endif
 
 	wled->cons_sync_write_delay_us = 0;
 	rc = of_property_read_u32(pdev->dev.of_node,
@@ -2619,6 +2695,9 @@ static int qpnp_wled_parse_dt(struct qpnp_wled *wled)
 					"qcom,auto-calibration-enable");
 	return 0;
 }
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+EXPORT_SYMBOL(g_wled_fs_curr_ua);	//SW4-HL-Display-HDR-SetFsCurr-00+_20180515
+#endif
 
 static int qpnp_wled_probe(struct platform_device *pdev)
 {
@@ -2637,6 +2716,10 @@ static int qpnp_wled_probe(struct platform_device *pdev)
 		}
 
 	wled->pdev = pdev;
+
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+	g_wled = wled;	//SW4-HL-Display-HDR-SetFsCurr-00+_20180515
+#endif
 
 	revid_node = of_parse_phandle(pdev->dev.of_node, "qcom,pmic-revid", 0);
 	if (!revid_node) {
