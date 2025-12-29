@@ -16,4 +16,10 @@ config FIH_APR
 	help
 	  support fih apr virtual file
 
+config FIH_DEBUG
+	bool "fih debug"
+	default n
+	help
+	  enable fih debugging
+
 endmenu
