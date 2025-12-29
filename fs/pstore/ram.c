@@ -46,7 +46,7 @@ MODULE_PARM_DESC(record_size,
 		"size of each dump done on oops/panic");
 
 #if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
-static ulong ramoops_console_size = 256*1024UL;  /* FIH: for pstore */
+static ulong ramoops_console_size = 1536*1024UL;  /* FIH: for pstore */
 #else
 static ulong ramoops_console_size = MIN_MEM_SIZE;
 #endif
