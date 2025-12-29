@@ -12,6 +12,20 @@
 
 #ifndef __STEP_CHG_H__
 #define __STEP_CHG_H__
+
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+enum step_chg_cfg_idx {
+	STEP_CHG_CFG = 0,
+	JEITA_FCC_CFG,
+	JEITA_FV_CFG,
+};
+#endif
+
 int qcom_step_chg_init(bool, bool);
 void qcom_step_chg_deinit(void);
+
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+int fih_set_step_chg_cfg(int *cfg, int cfg_len, int mode);
+int fih_set_step_chg_hysteresis(int hysteresis, int mode);
+#endif
 #endif /* __STEP_CHG_H__ */
