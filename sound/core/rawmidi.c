@@ -1011,6 +1011,12 @@ static long snd_rawmidi_kernel_read1(struct snd_rawmidi_substream *substream,
 		result += count1;
 		count -= count1;
 	}
+
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+	if (userbuf)
+		mutex_unlock(&runtime->realloc_mutex);
+#endif
+
 	spin_unlock_irqrestore(&runtime->lock, flags);
 	if (userbuf)
 		mutex_unlock(&runtime->realloc_mutex);

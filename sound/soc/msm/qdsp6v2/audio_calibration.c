@@ -496,7 +496,17 @@ static long audio_cal_shared_ioctl(struct file *file, unsigned int cmd,
 			goto unlock;
 		if (data == NULL)
 			goto unlock;
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+		if ((sizeof(data->hdr) + data->hdr.cal_type_size) > size) {
+			pr_err("%s: header size %zd plus cal type size %d are greater than data buffer size %d\n",
+				__func__, sizeof(data->hdr),
+				data->hdr.cal_type_size, size);
+			ret = -EFAULT;
+			goto unlock;
+		} else if (copy_to_user((void *)arg, data,
+#else
 		if (copy_to_user(arg, data,
+#endif
 			sizeof(data->hdr) + data->hdr.cal_type_size)) {
 			pr_err("%s: Could not copy cal type to user\n",
 				__func__);
