@@ -13,6 +13,9 @@
 #include <soc/qcom/camera2.h>
 #include "msm_camera_i2c.h"
 #include "msm_cci.h"
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+#include "../fih_camera_bbs.h"  //add
+#endif
 
 #undef CDBG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)

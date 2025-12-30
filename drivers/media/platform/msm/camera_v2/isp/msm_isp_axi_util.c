@@ -3639,9 +3639,14 @@ static int msm_isp_request_frame(struct vfe_device *vfe_dev,
 		vfe_dev->isp_page->drop_reconfig = 1;
 		return 0;
 	} else if ((vfe_dev->axi_data.src_info[frame_src].active) &&
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+			(frame_id ==
+			vfe_dev->axi_data.src_info[frame_src].frame_id) &&
+#else
 			((frame_id ==
 			vfe_dev->axi_data.src_info[frame_src].frame_id) ||
 			(frame_id == vfe_dev->irq_sof_id)) &&
+#endif
 			(stream_info->undelivered_request_cnt <=
 				MAX_BUFFERS_IN_HW)) {
 		vfe_dev->isp_page->drop_reconfig = 1;
@@ -3682,6 +3687,18 @@ static int msm_isp_request_frame(struct vfe_device *vfe_dev,
 			stream_info->activated_framedrop_period,
 			stream_info->stream_id);
 		vfe_dev->isp_page->drop_reconfig = 1;
+
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+		rc = msm_isp_return_empty_buffer(vfe_dev, stream_info,
+			user_stream_id, frame_id, buf_index, frame_src);
+		if (rc < 0)
+			pr_err("%s:%d failed: return_empty_buffer src %d\n",
+				__func__, __LINE__, frame_src);
+		stream_info->current_framedrop_period =
+			MSM_VFE_STREAM_STOP_PERIOD;
+		msm_isp_cfg_framedrop_reg(stream_info);
+#endif
+
 		return 0;
 	}
 

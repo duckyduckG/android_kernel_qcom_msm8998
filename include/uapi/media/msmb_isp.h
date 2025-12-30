@@ -29,6 +29,14 @@
 
 struct msm_vfe_cfg_cmd_list;
 
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+struct isp_proc {
+	uint32_t  kernel_sofid;
+	uint32_t  vfeid;
+	uint32_t  drop_reconfig;
+};
+#endif
+
 struct isp_kstate {
 	uint32_t kernel_sofid;
 	uint32_t drop_reconfig;
