@@ -1,0 +1,8 @@
+# SW4-HL-TP-BringUpILI2121-00+_20170327
+source "drivers/input/touchscreen/fih/ilitek_fih/Kconfig"
+# SW4-HL-TP-BringUpGT915L-00+_20180119
+source "drivers/input/touchscreen/fih/gt9xx_fih/Kconfig"
+source "drivers/input/touchscreen/fih/focaltech_touch_fih/Kconfig"
+source "drivers/input/touchscreen/fih/nt36xxx_fih/Kconfig"
+source "drivers/input/touchscreen/fih/gt1x_fih/Kconfig"
+source "drivers/input/touchscreen/fih/focaltech_touch_8719_fih/Kconfig"
