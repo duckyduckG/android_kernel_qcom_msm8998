@@ -17,6 +17,9 @@
 #include "msm_sd.h"
 #include "msm_ois.h"
 #include "msm_cci.h"
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+#include "../fih_camera_bbs.h"  //add
+#endif
 
 DEFINE_MSM_MUTEX(msm_ois_mutex);
 /*#define MSM_OIS_DEBUG*/
@@ -32,6 +35,10 @@ static int32_t msm_ois_power_up(struct msm_ois_ctrl_t *o_ctrl);
 static int32_t msm_ois_power_down(struct msm_ois_ctrl_t *o_ctrl);
 
 static struct i2c_driver msm_ois_i2c_driver;
+
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+extern int fih_camera_bbs_set(int id,int master,unsigned short sid,int module);//add
+#endif
 
 static int32_t data_type_to_num_bytes(
 	enum msm_camera_i2c_data_type data_type)
@@ -424,6 +431,9 @@ static int32_t msm_ois_control(struct msm_ois_ctrl_t *o_ctrl,
 		cci_client->id_map = 0;
 		cci_client->cci_i2c_master = o_ctrl->cci_master;
 		cci_client->i2c_freq_mode = set_info->ois_params.i2c_freq_mode;
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+		fih_camera_bbs_set((int)o_ctrl->pdev->id,cci_client->cci_i2c_master,(unsigned short)cci_client->sid,FIH_BBS_CAMERA_MODULE_OIS);//add
+#endif
 	} else {
 		o_ctrl->i2c_client.client->addr =
 			set_info->ois_params.i2c_addr;

@@ -25,6 +25,10 @@
 #undef CDBG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
 
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+extern void tca6416_write_ker(int,int,int);
+#endif
+
 int msm_camera_fill_vreg_params(struct camera_vreg_t *cam_vreg,
 	int num_vreg, struct msm_sensor_power_setting *power_setting,
 	uint16_t power_setting_size)
@@ -1429,6 +1433,10 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 	int rc = 0, index = 0, no_gpio = 0, ret = 0;
 	struct msm_sensor_power_setting *power_setting = NULL;
 
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+    pr_err("wbl msm_camera_power_up +");
+#endif
+
 	CDBG("%s:%d\n", __func__, __LINE__);
 	if (!ctrl || !sensor_i2c_client) {
 		pr_err("failed ctrl %pK sensor_i2c_client %pK\n", ctrl,
@@ -1536,6 +1544,27 @@ int msm_camera_power_up(struct msm_camera_power_ctrl_t *ctrl,
 			if (ctrl->i2c_conf && ctrl->i2c_conf->use_i2c_mux)
 				msm_camera_enable_i2c_mux(ctrl->i2c_conf);
 			break;
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+        case SENSOR_EXPAND:
+            pr_err("power_setting->seq_val=%d",power_setting->seq_val);
+        #if 0
+            if (!(((power_setting->seq_val>=0)&&(power_setting->seq_val<=7))||((10<=power_setting->seq_val)&&( power_setting->seq_val<=17))||(power_setting->seq_val==0xff)))
+            {
+            pr_err("SENSOR_EXPAND power_setting->seq_val  is exced limit");
+            goto power_up_failed;
+            }
+            if((power_setting->config_val!=0)&&(power_setting->config_val!=2))
+            {
+            pr_err("SENSOR_EXPAND power_setting->config_va  is exced limit");
+            goto power_up_failed;
+            }
+            #endif
+            pr_err("wbl %s vreg index val =%ld  gpio_num=%d\n", __func__,
+                    power_setting->config_val,power_setting->seq_val);
+            tca6416_write_ker(power_setting->seq_val,power_setting->config_val,power_setting->delay);
+
+            break;
+#endif
 		default:
 			pr_err("%s error power seq type %d\n", __func__,
 				power_setting->seq_type);
@@ -1650,6 +1679,10 @@ int msm_camera_power_down(struct msm_camera_power_ctrl_t *ctrl,
 	int index = 0, ret = 0;
 	struct msm_sensor_power_setting *pd = NULL;
 	struct msm_sensor_power_setting *ps;
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+    //struct msm_sensor_power_setting *power_setting = NULL;
+    pr_err("wbl msm_camera_power_down +");
+#endif
 
 	CDBG("%s:%d\n", __func__, __LINE__);
 	if (!ctrl || !sensor_i2c_client) {
@@ -1726,6 +1759,27 @@ int msm_camera_power_down(struct msm_camera_power_ctrl_t *ctrl,
 			if (ctrl->i2c_conf && ctrl->i2c_conf->use_i2c_mux)
 				msm_camera_disable_i2c_mux(ctrl->i2c_conf);
 			break;
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+        case SENSOR_EXPAND:
+            pr_err("power_setting->seq_val=%d",pd->seq_val);
+        #if 0
+            if (!(((power_setting->seq_val>=0)&&(power_setting->seq_val<=7))||((10<=power_setting->seq_val)&&( power_setting->seq_val<=17))||(power_setting->seq_val==0xff)))
+            {
+            pr_err("SENSOR_EXPAND power_setting->seq_val  is exced limit");
+            goto power_up_failed;
+            }
+            if((power_setting->config_val!=0)&&(power_setting->config_val!=2))
+            {
+            pr_err("SENSOR_EXPAND power_setting->config_va  is exced limit");
+            goto power_up_failed;
+            }
+            #endif
+            pr_err("wbl %s vreg index val =%ld  gpio_num=%d\n", __func__,
+                    pd->config_val,pd->seq_val);
+            tca6416_write_ker(pd->seq_val,pd->config_val,pd->delay);
+
+            break;
+#endif
 		default:
 			pr_err("%s error power seq type %d\n", __func__,
 				pd->seq_type);

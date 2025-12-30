@@ -17,6 +17,9 @@
 #include "msm_sd.h"
 #include "msm_cci.h"
 #include "msm_eeprom.h"
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+#include "../fih_camera_bbs.h"  //add
+#endif
 
 #undef CDBG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
@@ -24,6 +27,10 @@
 DEFINE_MSM_MUTEX(msm_eeprom_mutex);
 #ifdef CONFIG_COMPAT
 static struct v4l2_file_operations msm_eeprom_v4l2_subdev_fops;
+#endif
+
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+extern int fih_camera_bbs_set(int id,int master,unsigned short sid,int module);//add
 #endif
 
 /**
@@ -328,9 +335,22 @@ static int eeprom_parse_memory_map(struct msm_eeprom_ctrl_t *e_ctrl,
 	int rc =  0, i, j;
 	uint8_t *memptr;
 	struct msm_eeprom_mem_map_t *eeprom_map;
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+	int32_t eeprom_init_retry_cnt = 0;
+        /* MM-JF-implement-dual-cam-recalibration-00+{ */
+	uint16_t reg_setting_max_size = 32;
+	uint16_t write_table_threshold = 512;
+	uint32_t addr = 0x0;
+	uint8_t data[reg_setting_max_size];
+	uint32_t num_byte = 0;
+	/* MM-JF-implement-dual-cam-recalibration-00+} */
+#endif
 
 	e_ctrl->cal_data.mapdata = NULL;
 	e_ctrl->cal_data.num_data = msm_get_read_mem_size(eeprom_map_array);
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_FIH_DEBUG)
+	pr_info("%s:%d num_data = %d\n", __func__, __LINE__, e_ctrl->cal_data.num_data);
+#endif
 	if (e_ctrl->cal_data.num_data <= 0) {
 		pr_err("%s:%d Error in reading mem size\n",
 			__func__, __LINE__);
@@ -352,6 +372,174 @@ static int eeprom_parse_memory_map(struct msm_eeprom_ctrl_t *e_ctrl,
 			e_ctrl->i2c_client.client->addr =
 				eeprom_map->slave_addr >> 1;
 		}
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+		pr_info("%s:%d slave Addr: 0x%X\n", __func__, __LINE__, eeprom_map->slave_addr); /* MM-JF-implement-dual-cam-recalibration-00+ */
+		fih_camera_bbs_set((int)e_ctrl->pdev->id,e_ctrl->i2c_client.cci_client->cci_i2c_master,(unsigned short)e_ctrl->i2c_client.cci_client->sid,FIH_BBS_CAMERA_MODULE_EEPROM);//fihtdc,derekcwwu add
+		pr_info("%s:%d memory map Size: %d\n", __func__, __LINE__, eeprom_map->memory_map_size); /* MM-JF-implement-dual-cam-recalibration-00+{ */
+		if (eeprom_map->memory_map_size < write_table_threshold) // normal case
+		{
+			for (i = 0; i < eeprom_map->memory_map_size; i++) {
+				switch (eeprom_map->mem_settings[i].i2c_operation) {
+				case MSM_CAM_WRITE: {
+					e_ctrl->i2c_client.addr_type =
+						eeprom_map->mem_settings[i].addr_type;
+					rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write(
+						&(e_ctrl->i2c_client),
+						eeprom_map->mem_settings[i].reg_addr,
+						eeprom_map->mem_settings[i].reg_data,
+						eeprom_map->mem_settings[i].data_type);
+					msleep(eeprom_map->mem_settings[i].delay);
+					if (rc < 0) {
+						pr_err("%s: page write failed\n",
+							__func__);
+						goto clean_up;
+					}
+				}
+				break;
+				case MSM_CAM_POLL: {
+					e_ctrl->i2c_client.addr_type =
+						eeprom_map->mem_settings[i].addr_type;
+					rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_poll(
+						&(e_ctrl->i2c_client),
+						eeprom_map->mem_settings[i].reg_addr,
+						eeprom_map->mem_settings[i].reg_data,
+						eeprom_map->mem_settings[i].data_type,
+						eeprom_map->mem_settings[i].delay);
+					if (rc < 0) {
+						pr_err("%s: poll failed\n",
+							__func__);
+						goto clean_up;
+					}
+				}
+				break;
+				case MSM_CAM_READ: {
+eeprom_init_retry:
+					e_ctrl->i2c_client.addr_type =
+						eeprom_map->mem_settings[i].addr_type;
+					if (eeprom_map->mem_settings[i].data_type == MSM_CAMERA_I2C_WORD_DATA) {
+						rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_read(
+							&(e_ctrl->i2c_client),
+							eeprom_map->mem_settings[i].reg_addr,
+							(uint16_t *)memptr,
+							eeprom_map->mem_settings[i].data_type);
+					} else {
+						rc = e_ctrl->i2c_client.i2c_func_tbl->
+							i2c_read_seq(&(e_ctrl->i2c_client),
+							eeprom_map->mem_settings[i].reg_addr,
+							memptr,
+							eeprom_map->mem_settings[i].reg_data);
+					}
+
+					msleep(eeprom_map->mem_settings[i].delay);
+					if (rc < 0) {
+						eeprom_init_retry_cnt++;
+						pr_err("%s: read failed idx=%d\n",
+							__func__, i);
+						if (eeprom_init_retry_cnt <= 3) goto eeprom_init_retry;
+						goto clean_up;
+					}
+					memptr += eeprom_map->mem_settings[i].reg_data;
+				}
+				break;
+				default:
+					pr_err("%s: %d Invalid i2c operation LC:%d\n",
+						__func__, __LINE__, i);
+					return -EINVAL;
+				}
+			}
+		} /* MM-JF-implement-dual-cam-recalibration-00+{ */
+		else // dual cam re-calibration case
+		{
+			pr_err("%s:%d dual cam re-calibration case\n", __func__, __LINE__);
+
+			for (i = 0; i < eeprom_map->memory_map_size; i++) {
+				switch (eeprom_map->mem_settings[i].i2c_operation) {
+				case MSM_CAM_WRITE: {
+					e_ctrl->i2c_client.addr_type =
+						eeprom_map->mem_settings[i].addr_type;
+					if (addr == 0x0){
+						addr = eeprom_map->mem_settings[i].reg_addr;
+						pr_err("%s: addr = 0x%x\n", __func__, addr);
+					}
+					data[num_byte] = eeprom_map->mem_settings[i].reg_data;
+					pr_err("%s: data[%d] = 0x%x\n", __func__, num_byte, data[num_byte]);
+					num_byte++;
+					if (i+1 < eeprom_map->memory_map_size && (addr+num_byte-1)%reg_setting_max_size != (reg_setting_max_size-1))
+					{
+						if (eeprom_map->mem_settings[i+1].i2c_operation == MSM_CAM_WRITE
+							&& eeprom_map->mem_settings[i].reg_addr+1 == eeprom_map->mem_settings[i+1].reg_addr
+							&& num_byte < reg_setting_max_size)
+							continue;
+					}
+					rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_write_seq(
+						&(e_ctrl->i2c_client),
+						addr,
+						data,
+						num_byte);
+					msleep(1);
+					addr = 0x0;
+					num_byte = 0;
+					if (rc < 0) {
+						pr_err("%s: page write failed\n",
+							__func__);
+						goto clean_up;
+					}
+				}
+				break;
+				case MSM_CAM_POLL: {
+					e_ctrl->i2c_client.addr_type =
+						eeprom_map->mem_settings[i].addr_type;
+					rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_poll(
+						&(e_ctrl->i2c_client),
+						eeprom_map->mem_settings[i].reg_addr,
+						eeprom_map->mem_settings[i].reg_data,
+						eeprom_map->mem_settings[i].data_type,
+						eeprom_map->mem_settings[i].delay);
+					if (rc < 0) {
+						pr_err("%s: poll failed\n",
+							__func__);
+						goto clean_up;
+					}
+				}
+				break;
+				case MSM_CAM_READ: {
+eeprom_init_retry_recal:
+					e_ctrl->i2c_client.addr_type =
+						eeprom_map->mem_settings[i].addr_type;
+					if (eeprom_map->mem_settings[i].data_type == MSM_CAMERA_I2C_WORD_DATA) {
+						rc = e_ctrl->i2c_client.i2c_func_tbl->i2c_read(
+							&(e_ctrl->i2c_client),
+							eeprom_map->mem_settings[i].reg_addr,
+							(uint16_t *)memptr,
+							eeprom_map->mem_settings[i].data_type);
+					} else {
+						rc = e_ctrl->i2c_client.i2c_func_tbl->
+							i2c_read_seq(&(e_ctrl->i2c_client),
+							eeprom_map->mem_settings[i].reg_addr,
+							memptr,
+							eeprom_map->mem_settings[i].reg_data);
+					}
+					msleep(eeprom_map->mem_settings[i].delay);
+					if (rc < 0) {
+						eeprom_init_retry_cnt++;
+						pr_err("%s: read failed idx=%d\n",
+							__func__, i);
+						if (eeprom_init_retry_cnt <= 3) goto eeprom_init_retry_recal;
+						goto clean_up;
+					}
+					memptr += eeprom_map->mem_settings[i].reg_data;
+				}
+				break;
+				default:
+					pr_err("%s: %d Invalid i2c operation LC:%d\n",
+						__func__, __LINE__, i);
+					return -EINVAL;
+				}
+			}
+		}//Slave Addr
+		pr_info("%s:%d write complete\n", __func__, __LINE__);
+		/* MM-JF-implement-dual-cam-recalibration-00+} */
+#else
 		CDBG("Slave Addr: 0x%X\n", eeprom_map->slave_addr);
 		CDBG("Memory map Size: %d",
 			eeprom_map->memory_map_size);
@@ -412,6 +600,7 @@ static int eeprom_parse_memory_map(struct msm_eeprom_ctrl_t *e_ctrl,
 				return -EINVAL;
 			}
 		}
+#endif
 	}
 	memptr = e_ctrl->cal_data.mapdata;
 	for (i = 0; i < e_ctrl->cal_data.num_data; i++)
@@ -1460,7 +1649,10 @@ static int eeprom_init_config32(struct msm_eeprom_ctrl_t *e_ctrl,
 	if (rc < 0) {
 		pr_err("%s:%d memory map parse failed\n",
 			__func__, __LINE__);
+#if !defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+	//fihtdc,derekcwwu, remove and continue to do power down, to avoid gpio unrelease
 		goto free_mem;
+#endif
 	}
 
 	rc = msm_camera_power_down(power_info,
