@@ -34,7 +34,7 @@
 
 #define VERSION_LOG	"2.2.0"
 
-static int elan_debug = 1;
+static int elan_debug = 0;
 #define ELAN_DEBUG(format, args ...) \
 do { \
     if (elan_debug) \
