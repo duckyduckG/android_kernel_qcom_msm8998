@@ -32,10 +32,6 @@
 #include "pil-q6v5.h"
 #include "pil-msa.h"
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_FIH_NV)
-#include "../../fih/fih_ramtable.h"
-#endif
-
 /* Q6 Register Offsets */
 #define QDSP6SS_RST_EVB			0x010
 #define QDSP6SS_DBG_CFG			0x018
@@ -555,10 +551,6 @@ err_power:
 	return ret;
 }
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_FIH_NV)
-static bool fih_nv_assigned = false;
-#define FIH_NV_SIZE (NV_RF_SIZE + NV_CUST_SIZE + NV_DEFAULT_SIZE)
-#endif
 int pil_mss_reset_load_mba(struct pil_desc *pil)
 {
 	struct q6v5_data *drv = container_of(pil, struct q6v5_data, desc);
@@ -575,23 +567,6 @@ int pil_mss_reset_load_mba(struct pil_desc *pil)
 	struct device *dma_dev = md->mba_mem_dev_fixed ?: &md->mba_mem_dev;
 
 	trace_pil_func(__func__);
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_FIH_NV)
-	pr_err("%s: %s\n", __func__, pil->name);
-	if (!(strncmp(pil->name, "modem", sizeof(char)*5))) {
-		if (!fih_nv_assigned) {
-			pr_err("%s: Assign %s memory 0x%x 0x%x (initial)\n", __func__, pil->name, FIH_RAM_BASE, FIH_NV_SIZE);
-			ret = pil_assign_mem_to_subsys_and_linux(pil, FIH_RAM_BASE, FIH_NV_SIZE);
-			if (ret) {
-				pr_err("%s: Assign %s memory Error !!!!!!\n", __func__, pil->name);
-				fih_nv_assigned = false;
-				dev_err(pil->dev, "Failed to assign %s memory, ret - %d\n", pil->name, ret);
-			}
-			fih_nv_assigned = true;
-		} else {
-			pr_err("%s: Assign %s memory 0x%x 0x%x (re-init)\n", __func__, pil->name, FIH_RAM_BASE, FIH_NV_SIZE);
-		}
-	}
-#endif
 	fw_name_p = drv->non_elf_image ? fw_name_legacy : fw_name;
 	ret = request_firmware(&fw, fw_name_p, pil->dev);
 	if (ret) {
