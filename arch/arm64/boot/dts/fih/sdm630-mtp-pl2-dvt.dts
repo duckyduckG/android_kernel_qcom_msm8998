@@ -15,10 +15,7 @@
 
 #include "../qcom/sdm630.dtsi"
 #include "../qcom/sdm630-mtp.dtsi"
-#include "sdm660-internal-codec-pl2.dtsi"
-#include "nokia/pl2-preEVT-630.dtsi"
-/* fih Common includes */
-#include "common/fih-sdm630-common.dtsi"
+// #include "sdm660-internal-codec-pl2.dtsi"
 
 / {
 	model = "Qualcomm Technologies, Inc. SDM 630 PM660 + PM660L MTP, PL2 dvt";
@@ -29,37 +26,42 @@
 	fih,hw-id = <3 2 0>;
 };
 
-&i2c_7 {
-
-	tas2557@4c {
-		#sound-dai-cells = <1>;
-		compatible = "ti,tas2557";
-		reg = <0x4c>;  
-		pinctrl-names = "default";
-		pinctrl-0 = <&tas2557_irq_default>;
-		ti,cdc-reset-gpio = <&tlmm 56 0>;
-		interrupt-parent = <&tlmm>;
-		interrupts = <49 0>;
-		ti,irq-gpio = <&tlmm 49 0>;
-		ti,i2s-bits = <16>;   /* support 16, 24, 32 */
-		ti,bypass-tmax = <0>;   /* 0, not bypass; 1, bypass */
-		tas2557,device-model = "PL2"; /* Select tas2557 firmware */
+/ {
+	reserved-memory {
+		ramoops: ramoops@ACB00000 {
+			compatible = "removed-dma-pool", "ramoops";
+			no-map;
+			reg = <0 0xACB00000 0 0x00200000>;
+			record-size = <0x1000>;
+			console-size = <0x40000>;
+			ftrace-size = <0x0>;
+			pmsg-size = <0x0>;
+			ecc-size = <0x0>;
+			status = "ok";
+		};
+		fih_nv: fih_nv@AC000000 {
+			compatible = "removed-dma-pool";
+			no-map;
+			reg = <0 0xAC000000 0 0x00800000>;
+		};
+		fih_mem: fih_mem@AC800000 {
+			compatible = "removed-dma-pool";
+			no-map;
+			reg = <0 0xAC800000 0 0x00300000>;
+		};
 	};
 };
 
-
-&tlmm {
-		tas2557_irq_default: tas2557_irq_default {
-			mux {
-				pins = "gpio49";
-				function = "gpio";
-			};
-
-			config {
-				pins = "gpio49";
-				drive-strength = <2>;
-				bias-disable = <0>;
+&firmware {
+	android {
+		boot_devices = "soc/c0c4000.sdhci";
+		fstab {
+			vendor {
+				fsmgr_flags = "wait,slotselect";
+				status = "disabled";
 			};
 		};
-	
+	};
 };
+
+#include "nokia/display/dsi-panel-fih-ft8716-1080p-video-pl2.dtsi"
