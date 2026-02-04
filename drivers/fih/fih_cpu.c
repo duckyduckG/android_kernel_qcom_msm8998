@@ -64,7 +64,7 @@ static unsigned int fih_msm_rd_pbl_patch_ver(void)
 static int fih_cpu_read_show(struct seq_file *m, void *v)
 {
 	char msg[32];
-	char buf[4];
+	char buf[6];
 	unsigned int device = fih_msm_rd_jtag_id() & 0x0FFFFFFF;
 	unsigned int sample_type = (fih_msm_rd_jtag_id() & 0xF0000000) >> 28;
 	unsigned int featureid = fih_msm_rd_feature_id();
