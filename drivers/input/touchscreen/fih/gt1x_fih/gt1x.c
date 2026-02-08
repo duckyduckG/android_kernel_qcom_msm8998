@@ -58,12 +58,15 @@ int gt1x_int_gpio;
 static int gt1x_register_powermanger(void);
 static int gt1x_unregister_powermanger(void);
 
+#ifdef CONFIG_TOUCHSCREEN_GX_FIH_TESTS
 //sunqiupeng add for self test start
 extern s32 gtp_test_sysfs_init(void);
 extern void gtp_test_sysfs_deinit(void);
 extern int init_chip_type(void);
 extern s32 open_short_test(unsigned char *short_result_data);
 //sunqiupeng add for self test end
+#endif
+
 /**
  * gt1x_i2c_write - i2c write.
  * @addr: register address.
@@ -752,6 +755,7 @@ void touch_hlt_upgrade_write(int flag)
 	return;
 }
 
+#ifdef CONFIG_TOUCHSCREEN_GX_FIH_TESTS
 int hlt_selftest_result_read(void)
 {
 	unsigned char *result;
@@ -768,6 +772,8 @@ static void touch_hlt_selftest_write(void)
 {
 	return;
 }
+#endif
+
 /*Snow add for proc callback function*/
 //add by zzdc@snow for release tp data begin
 void gt1x_input_report_key (void)
@@ -900,13 +906,17 @@ static int gt1x_ts_probe(struct i2c_client *client, const struct i2c_device_id *
 	touch_cb.touch_tpfwver_read = touch_hlt_fwver_read;
 	touch_cb.touch_fwupgrade_read = touch_hlt_upgrade_read;
 	touch_cb.touch_fwupgrade = touch_hlt_upgrade_write;
+#ifdef CONFIG_TOUCHSCREEN_GX_FIH_TESTS
 	touch_cb.touch_selftest = touch_hlt_selftest_write;
 	touch_cb.touch_selftest_result = hlt_selftest_result_read;
+#endif
 	touch_cb.touch_double_tap_read = touch_double_tap_read_hlt;		
 	touch_cb.touch_double_tap_write = touch_double_tap_write_hlt;
 	/*Snow add for proc callback function*/
 
+#ifdef CONFIG_TOUCHSCREEN_GX_FIH_TESTS
 	 gtp_test_sysfs_init();
+#endif
 
 	return 0;
 }
@@ -929,13 +939,14 @@ static int gt1x_ts_remove(struct i2c_client *client)
 	input_unregister_device(input_dev);
     gt1x_remove_gpio_and_power();
 
+#ifdef CONFIG_TOUCHSCREEN_GX_FIH_TESTS
 	gtp_test_sysfs_deinit();
+#endif
 
     return 0;
 }
 
-#if   defined(CONFIG_FB)
-	
+#if defined(CONFIG_FB)
 /* frame buffer notifier block control the suspend/resume procedure */
 static struct notifier_block gt1x_fb_notifier;
 

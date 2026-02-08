@@ -10,6 +10,15 @@ config TOUCHSCREEN_GX_FIH
 		  Say Y here if you have Goodix touch panel.
 		  If unsure, say N.
 
+
+config TOUCHSCREEN_GX_FIH_TESTS
+        bool "Goodix Touchscreen"
+		depends on TOUCHSCREEN_GX_FIH
+		default n
+		help
+		  Say Y here if you want to enable tests.
+		  If unsure, say N.
+
 config TOUCHSCREEN_GX_DIRECTORY_FIH
     string "Goodix ts directory name"
     default "gt1x"
