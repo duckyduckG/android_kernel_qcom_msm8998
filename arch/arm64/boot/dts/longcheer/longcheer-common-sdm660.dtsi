@@ -1,0 +1,188 @@
+#include "longcheer-common-sdm660-mdss.dtsi"
+
+&int_codec {
+	status = "okay";	//modified by wenhuilong @20190313 for M690 audio bringup
+	qcom,wsa-disable;	//added by wenhuilong @20190313 for M690 audio bringup
+	qcom,msm-micbias1-ext-cap;	//added by wenhuilong @20190313 for M690 audio bringup
+	//added begin by wenhuilong @20190313 for M690 audio bringup
+	qcom,msm-spk-ext-pa = <&tlmm 64 0>;
+	qcom,spk_ext_pa_det = <&tlmm 74 0>;	//added by wenhuilong @20190420 for will pa compatible
+	//added end by wenhuilong @20190313 for M690 audio bringup
+};
+
+&spmi_bus {
+	qcom,pm660@0 {
+		qcom,power-on@800 {
+			qcom,pon_1 {
+				/*long press powerkey 10s to reboot by wangyibo at 20190315 start*/
+				qcom,support-reset = <1>;
+				qcom,s1-timer = <6720>;
+				qcom,s2-timer = <2000>;
+				qcom,s2-type = <7>;
+				/*long press powerkey 10s to reboot by wangyibo at 20190315 end*/
+			};
+		};
+	};
+};
+
+&pm660_charger {
+	/delete-property/ qcom,wipower-max-uw;
+
+	/* set input current and voltage add by tangjifu 2019-03-19 start*/	
+	qcom,otg-cl-ua = <1000000>;
+    qcom,fv-max-uv  = <4400000>;
+    qcom,usb-icl-ua = <2000000>;
+    qcom,fcc-max-ua = <2000000>;
+	/* set input current and voltage add by tangjifu 2019-03-19 end*/
+
+	qcom,thermal-mitigation
+			= <2000000 1700000 1400000 1100000 800000>;
+};
+
+&pm660_fg {
+	/*set cutoff voltage and term current add by tangjifu 2019-03-19 start*/
+	qcom,fg-cutoff-voltage = <3400>;
+	qcom,fg-chg-term-current = <150>;
+    qcom,fg-sys-term-current = <300>;
+	/*set cutoff voltage and term current add by tangjifu 2019-03-19 end*/
+	qcom,fg-jeita-thresholds = <0 10 45 52>;
+};
+
+&pm660_haptics {
+	qcom,wave-shape = "sine";
+	qcom,wave-play-rate-us = <4255>; //modified by wenhuilong @20190717 for vib
+	qcom,lra-auto-res-mode = "none"; //modified by wenhuilong @20190717 for vib
+};
+
+&rpm_bus {
+	//xiaopei add sar sensor ldoa18 always-on,2019-3-16 begin
+	rpm-regulator-ldoa18 {
+		compatible = "qcom,rpm-smd-regulator-resource";
+		qcom,resource-name = "ldoa";
+		qcom,resource-id = <18>;
+		qcom,regulator-type = <0>;
+		status = "okay";
+		regulator-always-on;
+		regulator-l18 {
+			compatible = "qcom,rpm-smd-regulator";
+			regulator-name = "pm660_l18";
+			qcom,set = <3>;		
+			regulator-min-microvolt = <2850000>;
+			regulator-max-microvolt = <2850000>;
+			qcom,init-voltage = <2850000>;
+			status = "okay";
+			regulator-always-on;
+		};
+	};
+	//xiaopei add sar sensor ldoa18 always-on,2019-3-16 End
+};
+
+/*modify by shenwenbin for M690 display 20190312 begin*/
+/* enable WLED */
+&pm660l_wled {
+	status = "okay";
+};
+
+/* enable LCDB */
+&pm660l_lcdb {
+	status = "okay";
+};
+
+&pm660a_oledb {
+	status = "okay";
+};
+
+&pm660a_labibb {
+	status = "okay";
+};
+/*modify by shenwenbin for M690 display 20190312 end*/
+
+&red_led {
+	linux,name = "orange";
+};
+
+&blue_led {
+	qcom,pause-lo = <0>;
+	qcom,pause-hi = <0>;
+	qcom,ramp-step-ms = <100>;
+	qcom,lut-flags = <1>;
+	linux,name = "red";
+	qcom,start-idx = <0>;
+	qcom,idx-len = <22>;
+	qcom,duty-pcts =
+		[01 0a 14 1e 28 32 3c 46 50 5a 64
+		64 5a 50 46 3c 32 28 1e 14 0a 01];
+	qcom,use-blink;
+};
+
+&pm660l_wled {
+	qcom,cons-sync-write-delay-us = <4000>; //modify by shenwenbin for slide backlight bar flicker 20190712
+    qcom,wled-stepper-en;   //modify by shenwenbin for slide backlight bar flicker 20190712
+};
+
+&soc {
+	qcom,qbt1000 {
+		/delete-property/ qcom,ipc-gpio;
+	};
+	/* add sar ant check by xiaopei at 20190520 i love you start */
+	ant_check {
+		compatible = "ant_check";
+        pinctrl-names = "ant_check_irq_state";
+        pinctrl-0 = <&ant_check_irq_state>;
+        ant_check,irq_gpio_hb = <&tlmm 56 0>;
+        ant_check,irq_gpio_mb = <&tlmm 77 0>;
+	};
+	/* add sar ant check by xiaopei at 20190520 i love you no end */
+    sn_fuse: snfuse@0xA4128 {
+        compatible = "qcom,sn-fuse";
+        reg = <0x786134 0x4>,
+            <0x78607C 0x4>;
+        reg-names = "sn-base","fuse-state";
+    };
+	/* added by liwei for trustonic tee 20190624 start */
+	mcd {
+		compatible = "qcom,mcd";
+		status =  "okay";
+		qcom,ce-hw-instance = <0>;
+		qcom,ce-device = <0>;
+		interrupts = <0 248 0>;
+		interrupt-names = "mcd_irq";
+		clock-names = "core_clk_src", "core_clk",
+		              "iface_clk", "bus_clk";
+		clocks = <&clock_rpmcc QSEECOM_CE1_CLK>,
+		         <&clock_rpmcc QSEECOM_CE1_CLK>,
+				 <&clock_rpmcc QSEECOM_CE1_CLK>,
+				 <&clock_rpmcc QSEECOM_CE1_CLK>;
+		qcom,ce-opp-freq = <171430000>;
+	};	
+	/* added by liwei for trustonic tee 20190624 end */ 
+	gpio_keys {
+		camera_focus {
+			gpios = <&tlmm 75 0x1>;
+			gpio-key,wakeup;
+		};
+	};
+	/*NHK_M690_A01-841 volume up key has no function delete by wangyibo 20190320*/
+	/delete-node/ camera_snapshot;
+};
+
+&usb3 {
+	dwc3@a800000 {
+		/*NHK_M690_A01-1006 idle power 16mA add by wangyibo at 20190422*/
+		maximum-speed = "high-speed";
+	};
+};
+
+&firmware {
+	android {
+		vbmeta {
+			compatible = "android,vbmeta";
+			parts = "vbmeta,boot,system,vendor,dtbo";
+		};
+		fstab {
+			vendor {
+				fsmgr_flags = "wait,slotselect,avb";
+			};
+		};
+	};
+};

@@ -1,0 +1,260 @@
+#include "../qcom/sdm660-pinctrl.dtsi"
+
+&soc {
+	tlmm: pinctrl@03000000 {
+		/delete-node/ ts_mux;
+		spi_4 {
+			spi_4_sleep: spi_4_sleep {
+				mux {
+					function = "gpio";
+				};
+
+				config {
+					/delete-property/ output-low;
+					/delete-property/ bias-pull-down;
+				};
+			};
+		};
+
+        pmx_ts_active {
+            ts_int_active: ts_int_active {
+                mux {
+                    pins = "gpio67";
+                    function = "gpio";
+                };
+                
+                config {
+                        pins = "gpio67";
+                        drive-strength = <8>;
+                        bias-pull-up;
+                    };
+                };
+
+            ts_reset_active: ts_reset_active {
+                mux {
+                    pins = "gpio66";
+                    unction = "gpio";
+                };
+                
+                config {
+                    	pins = "gpio66";
+                        drive-strength = <8>;
+                        bias-pull-up;
+                    };
+                };
+        	};
+                
+        pmx_ts_suspend {
+            ts_int_suspend: ts_int_suspend {
+                mux {
+                    pins = "gpio67";
+                    function = "gpio";
+				};
+                
+                config {
+                        pins = "gpio67";
+                        drive-strength = <8>;
+                        bias-pull-down;
+                        output-low;
+                    };
+                };
+                
+                
+                ts_reset_suspend: ts_reset_suspend {
+                    mux {
+                        pins = "gpio66";
+                        function = "gpio";
+                    };
+                
+                	config {
+                        pins = "gpio66";
+                        drive-strength = <8>;
+                        bias-pull-down;
+                        output-low;
+                    };
+                };
+            };                 
+   
+            pmx_ts_release {
+                ts_release: ts_release {
+                    mux {
+                        pins = "gpio67", "gpio66";
+                        function = "gpio";
+                    };
+                
+                    config {
+                        pins = "gpio67", "gpio66";
+                        drive-strength = <2>;
+                        bias-pull-down;
+                    };
+                };
+        	};
+
+		//added begin by wenhuilong @20190313 for M690 audio bringup			
+		pmx_spk_ext_pa_active{
+			spk_ext_pa_active: spk_ext_pa_active {
+				mux {
+					pins = "gpio64";
+					function = "gpio";
+				};
+				config {
+					pins = "gpio64";
+					drive-strength = <8>;
+					output-high;
+					bias-pull-up;//bias-pull-down;
+				};
+			};
+		};
+
+		pmx_spk_ext_pa_suspend{
+				spk_ext_pa_suspend: spk_ext_pa_suspend {
+				mux {
+					pins = "gpio64";
+					function = "gpio";
+				};
+				config {
+					pins = "gpio64";
+					drive-strength = <2>;
+					bias-pull-up;//bias-disable;
+				};
+			};
+		};
+		//added end by wenhuilong @20190313 for M690 audio bringup
+
+		/*change to unused gpio for empty out spi gpio 20190323 begin*/
+		spkr_1_sd_n {
+			spkr_1_sd_n_sleep: spkr_1_sd_n_sleep {
+				mux {
+					pins = "gpio60";
+				};
+
+				config {
+					pins = "gpio60";
+				};
+			};
+
+			spkr_1_sd_n_active: spkr_1_sd_n_active {
+				mux {
+					pins = "gpio60";
+				};
+
+				config {
+					pins = "gpio60";
+				};
+			};
+		};
+
+		spkr_2_sd_n {
+			spkr_2_sd_n_sleep: spkr_2_sd_n_sleep {
+				mux {
+					pins = "gpio61";
+				};
+
+				config {
+					pins = "gpio61";
+				};
+			};
+
+			spkr_2_sd_n_active: spkr_2_sd_n_active {
+				mux {
+					pins = "gpio61";
+				};
+
+				config {
+					pins = "gpio61";
+				};
+			};
+		};
+		/*change to unused gpio for empty out spi gpio 20190323 end*/
+
+		cam_sensor_rear2_active: cam_sensor_rear2_active {
+			/* RESET, STANDBY */
+			mux {
+				pins = "gpio40";
+			};
+
+			config {
+				pins = "gpio40";
+			};
+		};
+
+		cam_sensor_rear2_suspend: cam_sensor_rear2_suspend {
+			/* RESET, STANDBY */
+			mux {
+				pins = "gpio40";
+			};
+			config {
+				pins = "gpio40";
+			};
+		};
+
+		/* googole key used gpio13 modified by wangyibo at 20190321 */
+		tlmm_gpio_key {
+			gpio_key_active: gpio_key_active {
+				mux {
+					pins = "gpio75", "gpio113";
+				};
+
+				config {
+					pins = "gpio75", "gpio113";
+				};
+			};
+
+			gpio_key_suspend: gpio_key_suspend {
+				mux {
+					pins = "gpio75", "gpio113";
+				};
+
+				config {
+					pins = "gpio75", "gpio113";
+				};
+			};
+		};
+
+               /*modify by shenwenbin for M690 display 20190312 begin */
+		px8418_reset: px8418_reset {
+			px8418_reset_active: px8418_reset_active {
+				mux {
+					pins = "gpio25";
+					function = "gpio";
+				};
+
+				config {
+					pins = "gpio25";
+					drive-strength = <8>; /* 8 mA */
+					bias-disable = <0>; /* no pull */
+				};
+			};
+			px8418_reset_suspend: px8418_reset_suspend {
+				mux {
+					pins = "gpio25";
+					function = "gpio";
+				};
+
+				config {
+					pins = "gpio25";
+					drive-strength = <2>; /* 2 mA */
+					bias-pull-down; /* pull down */
+				};
+			};
+		};
+               /*modify by shenwenbin for M690 display 20190312 end */
+
+		// add by xiaopei for sar ant detect by xiaopei at 2019520 start
+		ant_check_irq {
+			ant_check_irq_state: ant_check_irq_state {
+				mux {
+					pins = "gpio56","gpio77";
+					function = "gpio";
+				};
+
+				config {
+					pins = "gpio56","gpio77";
+					drive-strength = <6>;
+					bias-disable;
+				};
+			};
+		};
+		//add by xiaopei for sar ant detect by xiaopei at 2019520 start
+	};
+};

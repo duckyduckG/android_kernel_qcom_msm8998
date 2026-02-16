@@ -190,4 +190,10 @@ config FIH_SDM630_SDM660_PROJS
 	help
 		Support for FIH SDM660 devices
 
+config LONGCHEER_SDM660_PROJS
+	bool "Longcheer SDM660"
+	select ARCH_SDM660
+	help
+		Support for Longcheer SDM660 devices
+
 endmenu

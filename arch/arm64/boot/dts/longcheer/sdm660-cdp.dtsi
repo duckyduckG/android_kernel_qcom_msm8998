@@ -1,0 +1,41 @@
+/* Copyright (c) 2016-2018, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include "../qcom/sdm660-cdp.dtsi"
+
+&i2c_6 { /* BLSP1 QUP6 (NFC) */
+	/delete-node/ nq@28;
+};
+
+&mdss_dsi0 {
+	qcom,dsi-pref-prim-pan = <&dsi_nt35695b_truly_fhd_video>;
+};
+
+&mdss_dsi1 {
+	qcom,dsi-pref-prim-pan = <&dsi_nt35695b_truly_fhd_video>;
+};
+
+&mdss_mdp {
+	/delete-node/ qcom,mdss_dsi_nt35597_wqxga_video_truly;
+	/delete-node/ qcom,mdss_dsi_nt35597_truly_wqxga_cmd;
+	/delete-node/ qcom,mdss_dsi_sharp_wqxga_video;
+	/delete-node/ qcom,mdss_dsi_nt35597_dsc_video_truly;
+	/delete-node/ qcom,mdss_dsi_nt35597_dsc_cmd_truly;
+	/delete-node/ qcom,mdss_dsi_nt35597_wqxga_video;
+	/delete-node/ qcom,mdss_dsi_nt35597_wqxga_cmd;
+	/delete-node/ qcom,mdss_dsi_nt35695b_truly_fhd_cmd;
+	/delete-node/ qcom,mdss_dsi_truly_1080p_video;
+	/delete-node/ qcom,mdss_dsi_truly_1080p_cmd;
+	/delete-node/ qcom,mdss_dsi_rm67195_amoled_fhd_cmd;
+	/delete-node/ qcom,mdss_dsi_lgd_incell_sw49106_fhd_video;
+	/delete-node/ qcom,mdss_dsi_hx8399_truly_fhd_video;
+};

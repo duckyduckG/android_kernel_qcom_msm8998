@@ -18,6 +18,10 @@ ifeq ($(CONFIG_FIH_SDM630_SDM660_PROJS),y)
 dts-dirs += fih
 endif
 
+ifeq ($(CONFIG_LONGCHEER_SDM660_PROJS),y)
+dts-dirs += longcheer
+endif
+
 subdir-y	:= $(dts-dirs)
 
 dtstree		:= $(srctree)/$(src)

@@ -1,0 +1,63 @@
+/* Copyright (c) 2017, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include "sdm660-mtp.dtsi"
+#include "../qcom/sdm636-camera-sensor-mtp.dtsi"
+
+/ {
+};
+
+&tlmm {
+	// add by xiaopei for sar ant detect by xiaopei at 2019520 start
+	ant_check_irq {
+		ant_check_irq_state: ant_check_irq_state {
+			mux {
+				pins = "gpio56";
+			};
+
+			config {
+				pins = "gpio56";
+			};
+		};
+	};
+	//add by xiaopei for sar ant detect by xiaopei at 2019520 start
+};
+
+&soc {
+	/* add sar ant check by xiaopei at 20190520 i love you start */
+	ant_check {
+		/delete-property/ ant_check,irq_gpio_hb;
+		/delete-property/ ant_check,irq_gpio_mb;
+		compatible = "ant_check";
+        pinctrl-names = "ant_check_irq_state";
+        pinctrl-0 = <&ant_check_irq_state>;
+        ant_check,irq_gpio = <&tlmm 56 0>;
+	};
+};
+
+&actuator0 {
+	cam_vaf-supply = <&cam_actuator_regulator>;
+	qcom,cam-vreg-max-voltage = <2800000>;
+	qcom,cam-vreg-op-mode = <0>;
+};
+
+&mdss_dsi {
+	hw-config = "single_dsi";
+};
+
+&mdss_dsi0 {
+	qcom,dsi-pref-prim-pan = <&dsi_nt35695b_truly_fhd_video>;
+};
+
+&mdss_dsi1 {
+	status = "disabled";
+};
