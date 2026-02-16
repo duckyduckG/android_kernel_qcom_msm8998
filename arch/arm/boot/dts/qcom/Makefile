@@ -212,7 +212,7 @@ endif
 
 dtb-$(CONFIG_ARCH_MSMHAMSTER) += msmhamster-rumi.dtb
 
-ifneq ($(CONFIG_FIH_SDM630_SDM660_PROJS),y)
+ifneq ($(filter n,$(CONFIG_FIH_SDM630_SDM660_PROJS) $(CONFIG_LONGCHEER_SDM660_PROJS)),)
 dtb-$(CONFIG_ARCH_SDM660) += sdm660-sim.dtb \
 	sdm660-internal-codec-cdp.dtb \
 	sdm660-internal-codec-mtp.dtb \

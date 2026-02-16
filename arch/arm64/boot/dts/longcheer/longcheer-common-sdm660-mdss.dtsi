@@ -1,0 +1,111 @@
+#include "display/dsi-panel-tianma-ft8719-fhdplus-video.dtsi"
+#include "display/dsi-panel-hlt-hx83112a-fhdplus-video.dtsi"
+#include "display/pxlw-iris3-cfg-lc-m690-tianma-ft8719-fhdplus-video.dtsi"
+#include "display/pxlw-iris3-cfg-lc-m690-hlt-hx83112a-fhdplus-video.dtsi"
+
+&mdss_mdp {
+	/delete-node/ qcom,mdss_dsi_sim_video;
+	/delete-node/ qcom,mdss_dsi_dual_sim_video;
+	/delete-node/ qcom,mdss_dsi_nt35597_wqxga_video_truly;
+	/delete-node/ qcom,mdss_dsi_nt35597_truly_wqxga_cmd;
+	/delete-node/ qcom,mdss_dsi_nt36850_truly_wqhd_cmd;
+	/delete-node/ qcom,mdss_dsi_sharp_wqxga_video;
+	/delete-node/ qcom,mdss_dsi_nt35597_dsc_video_truly;
+	/delete-node/ qcom,mdss_dsi_nt35597_dsc_cmd_truly;
+	/delete-node/ qcom,mdss_dsi_nt35597_wqxga_video;
+	/delete-node/ qcom,mdss_dsi_nt35597_wqxga_cmd;
+	/delete-node/ qcom,mdss_dsi_nt35695b_truly_fhd_cmd;
+	/delete-node/ qcom,mdss_dsi_truly_1080p_cmd;
+	/delete-node/ qcom,mdss_dsi_truly_1080p_video;
+	/delete-node/ qcom,mdss_dsi_lgd_incell_sw49106_fhd_video;
+	/delete-node/ qcom,mdss_dsi_hx8399_truly_fhd_video;
+};
+
+&dsi_panel_pwr_supply {
+    /*modify by shenwenbin for M690 display 20190312 begin*/
+    qcom,panel-supply-entry@3 {
+		reg = <0>;
+		qcom,supply-name = "px8418-vdd";
+		qcom,supply-min-voltage = <1800000>;
+		qcom,supply-max-voltage = <1950000>;
+		qcom,supply-enable-load = <32000>;
+		qcom,supply-disable-load = <80>;
+	};
+    /*modify by shenwenbin for M690 display 20190312 end*/
+};
+
+/*modify by shenwenbin for M690 display 20190312 begin*/
+&dsi_ft8719_tianma_fhdplus_video {
+        qcom,mdss-dsi-panel-timings-phy-v2 = [25 1f 09 0a 06 03 04 a0
+                25 1f 09 0a 06 03 04 a0
+                25 1f 09 0a 06 03 04 a0
+                25 1f 09 0a 06 03 04 a0
+                25 1f 08 0a 06 03 04 a0];
+        qcom,mdss-dsi-min-refresh-rate = <48>;
+        qcom,mdss-dsi-max-refresh-rate = <60>;
+        qcom,mdss-dsi-t-clk-post = <0x0E>;
+	qcom,mdss-dsi-t-clk-pre = <0x35>;
+};
+
+&dsi_hx83112a_hlt_fhdplus_video {
+        qcom,mdss-dsi-panel-timings-phy-v2 = [25 1f 09 0a 06 03 04 a0
+                25 1f 09 0a 06 03 04 a0
+                25 1f 09 0a 06 03 04 a0
+                25 1f 09 0a 06 03 04 a0
+                25 1f 08 0a 06 03 04 a0];
+        qcom,mdss-dsi-min-refresh-rate = <48>;
+        qcom,mdss-dsi-max-refresh-rate = <60>;
+        qcom,mdss-dsi-t-clk-post = <0x0E>;
+	qcom,mdss-dsi-t-clk-pre = <0x35>;
+};
+/*modify by shenwenbin for M690 display 20190312 end*/
+
+&dsi_nt35695b_truly_fhd_video {
+	/delete-property/ qcom,esd-check-enabled;
+	/delete-property/ qcom,mdss-dsi-panel-status-check-mode;
+	/delete-property/ qcom,mdss-dsi-panel-status-command;
+	/delete-property/ qcom,mdss-dsi-panel-status-command-state;
+	/delete-property/ qcom,mdss-dsi-panel-status-value;
+	/delete-property/ qcom,mdss-dsi-panel-on-check-value;
+	/delete-property/ qcom,mdss-dsi-panel-status-read-length;
+	/delete-property/ qcom,mdss-dsi-panel-max-error-count;
+};
+
+&dsi_rm67195_amoled_fhd_cmd {
+	qcom,mdss-dsi-panel-timings-phy-v2 = [24 1f 08 09 05 03 04 a0
+		24 1f 08 09 05 03 04 a0
+		24 1f 08 09 05 03 04 a0
+		24 1f 08 09 05 03 04 a0
+		24 1a 08 09 05 03 04 a0];
+	qcom,mdss-dsi-t-clk-post = <0x0d>;
+	qcom,mdss-dsi-t-clk-pre = <0x2f>;
+};
+
+&mdss_dsi {
+	qcom,msm-bus,vectors-KBps =
+		<22 512 0 0>,
+		<22 512 0 6400000>; //modify by huxiaobin for iris3 mipi IB to 6.4Gbps 20190411
+};
+
+&mdss_dsi0 {
+	px8418-vdd-supply = <&pm660_l13>;       //modify by shenwenbin for M690 display 20190312
+	clocks = <&clock_mmss MMSS_MDSS_BYTE0_CLK>,
+		<&clock_mmss MMSS_MDSS_PCLK0_CLK>,
+		<&clock_mmss MMSS_MDSS_ESC0_CLK>,
+		<&clock_mmss BYTE0_CLK_SRC>,
+		<&clock_mmss PCLK0_CLK_SRC>,
+		<&clock_mmss MMSS_MDSS_BYTE0_INTF_CLK>,
+		<&mdss_dsi0_pll BYTE0_MUX_CLK>,
+		<&mdss_dsi0_pll PIX0_MUX_CLK>,
+		<&mdss_dsi0_pll BYTE0_SRC_CLK>,
+		<&mdss_dsi0_pll PIX0_SRC_CLK>,
+		<&mdss_dsi0_pll SHADOW_BYTE0_SRC_CLK>,
+		<&mdss_dsi0_pll SHADOW_PIX0_SRC_CLK>,
+		<&clock_rpmcc RPM_LN_BB_CLK2>;         //modify by shenwenbin for M690 display 20190312 
+	clock-names = "byte_clk", "pixel_clk", "core_clk",
+		"byte_clk_rcg", "pixel_clk_rcg",
+		"byte_intf_clk", "pll_byte_clk_mux",
+		"pll_pixel_clk_mux", "pll_byte_clk_src",
+		"pll_pixel_clk_src", "pll_shadow_byte_clk_src",
+		"pll_shadow_pixel_clk_src","bb_clk_2";          //modify by shenwenbin for M690 display 20190312 
+};
