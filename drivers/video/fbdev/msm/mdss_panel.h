@@ -1461,6 +1461,19 @@ void mdss_panel_dsc_pclk_param_calc(struct dsc_desc *dsc, int intf_width);
  */
 int mdss_panel_dsc_prepare_pps_buf(struct dsc_desc *dsc, char *buf,
 	int pps_id);
+
+/* mock lonGchEr start */
+static inline int tp_gesture_wakeup(void)
+{
+	return 0;
+}
+
+static inline void himax_lcd_resume_func(void)
+{
+	return;
+}
+/* mock lonGchEr end */
+
 #ifdef CONFIG_FB_MSM_MDSS
 int mdss_panel_debugfs_init(struct mdss_panel_info *panel_info,
 		char const *panel_name);

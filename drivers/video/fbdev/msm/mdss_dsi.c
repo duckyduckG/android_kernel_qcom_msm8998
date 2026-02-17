@@ -29,7 +29,7 @@
 #include <linux/dma-buf.h>
 #if defined(CONFIG_LONGCHEER_SDM660_PROJS)
 /*modify by shenwenbin for open double tap wakeup 20190516 begin*/
-#include <linux/lct_tp_fm_info.h>
+// #include <linux/lct_tp_fm_info.h>
 /*modify by shenwenbin for open double tap wakeup 20190516 end*/
 #endif
 
