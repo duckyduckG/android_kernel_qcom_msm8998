@@ -54,7 +54,7 @@ u32 iris_max_x_value;
 #define IRIS_X_2500K			4637
 #define IRIS_LAST_BIT_CTRL	1
 
-/*range is 2500~10000*/
+/*range is 2500~10000 or 11000*/
 static u32 iris_color_x_buf[]= {
 	4637,4626,4615,4603,
 	4591,4578,4565,4552,
@@ -131,7 +131,21 @@ static u32 iris_color_x_buf[]= {
 	2806,2804,2803,2801,
 	2800,2798,2797,2795,
 	2794,2792,2791,2789,
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	2788,2787,2785,2784,
+	2782,2781,2780,2778,
+	2777,2776,2774,2773,
+	2772,2770,2769,2768,
+	2766,2765,2764,2763,
+	2761,2760,2759,2758,
+	2756,2755,2754,2753,
+	2751,2750,2749,2748,
+	2747,2745,2744,2743,
+	2742,2741,2740,2739,
+	2737,
+#else
 	2788,
+#endif
 };
 
 /*G0,G1,G2,G3,G4,G5*/
@@ -144,6 +158,13 @@ static u32 iris_color_x_buf[]= {
 //static u32 m_dwBLux = 50;
 /*org=128; Joey modify 20160712*/
 //static u32 m_dwTH_LuxAdj = 150;
+
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+static u32 fGainRGB[3] = {10000, 10000, 10000};
+static long m_awContrastBuffer[9] = {0, 0, 2048, 2048, 0, 0, 0, 2048,0};
+static long nCSCCoffValue[9];
+static u32 *iris_csc_gain_buf = NULL;
+#endif
 
 u8 iris_get_dbc_lut_index(void)
 {
@@ -216,6 +237,25 @@ void iris_set_skip_dma(bool skip)
 	iris_skip_dma = skip;
 }
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+void iris_csc_lut_check(const u8 *fw_data)
+{
+	u32 len = 0;
+
+	if (iris_csc_gain_buf == NULL) {
+		len = CSC_LUT_SIZE * CSC_LUT_NUMBER;
+		iris_csc_gain_buf = kzalloc(len, GFP_KERNEL);
+	}
+
+	if (!iris_csc_gain_buf) {
+		pr_err("%s:failed to alloc mem iris_csc_gain_buf:%p\n",
+			__func__, iris_csc_gain_buf);
+		return;
+	}
+	memcpy(&iris_csc_gain_buf[0], (fw_data + CSC_FW_START_ADDR), CSC_LUT_SIZE * CSC_LUT_NUMBER);
+}
+#endif
+
 void iris_set_sdr2hdr_mode(u8 mode)
 {
 	iris_sdr2hdr_mode = mode;
@@ -240,7 +280,12 @@ static int iris_capture_disable_pq(struct iris_update_ipopt *popt, bool *skiplas
 				0x52, 0x52, IRIS_LAST_BIT_CTRL);
 
 		*skiplast = 1;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	}
+	if (!iris_dynamic_power_get() && !iris_skip_dma)
+#else
 	} else if (!iris_dynamic_power_get())
+#endif
 		*skiplast = 1;
 	return len;
 }
@@ -276,7 +321,12 @@ static int iris_capture_disable_lce(struct iris_update_ipopt *popt, bool *skipla
 				0x52, 0x52, IRIS_LAST_BIT_CTRL);
 
 		*skiplast = 1;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	}
+	if (!iris_dynamic_power_get() && !iris_skip_dma)
+#else
 	} else if (!iris_dynamic_power_get())
+#endif
 		*skiplast = 1;
 	return len;
 }
@@ -364,6 +414,26 @@ void iris_pq_parameter_init(void)
 
 	pr_err("%s, iris_min_x_value=%d, iris_max_x_value = %d\n", __func__, iris_min_x_value, iris_max_x_value);
 }
+
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+void iris_quality_setting_off(void)
+{
+	struct iris_setting_info *psetting = &iris_setting;
+
+	psetting->quality_cur.al_bl_ratio = 0;
+	if (psetting->quality_cur.pq_setting.sdr2hdr != SDR2HDR_Bypass) {
+		psetting->quality_cur.pq_setting.sdr2hdr = SDR2HDR_Bypass;
+		iris_sdr2hdr_level_set(SDR2HDR_Bypass);
+		psetting->quality_cur.pq_setting.cmcolorgamut = 0;
+
+		iris_cm_color_gamut_set(
+			psetting->quality_cur.pq_setting.cmcolorgamut);
+	}
+
+	iris_capture_ctrl_en = false;
+	iris_skip_dma = false;
+}
+#endif
 
 void iris_peaking_level_set(u32 level)
 {
@@ -467,19 +537,52 @@ int iris_cm_ratio_set(struct iris_update_ipopt *popt, uint8_t skip_last)
 {
 	u32 tablesel;
 	u32 index;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	u32 index_default;
+#endif
 	u32 xvalue;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	u32 xvalue_default;
+#endif
 	u32 ratio;
 	u32 value;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	u32 value_default;
+#endif
 	u32 regvalue = 0;
 	struct iris_update_regval regval;
 	struct quality_setting *pqlt_cur_setting = &iris_setting.quality_cur;
 	int len;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	int i;
+	struct iris_cfg *pcfg = iris_get_cfg();
+	struct iris_ip_opt *psopt;
+	uint32_t *data = NULL;
+	// 2019-04-19 add by pixelwork for PQ begin
+	u32 dwOffSet = 0;
+	// 2019-04-19 add by pixelwork for PQ end
+#endif
 
 	if (pqlt_cur_setting->pq_setting.cmcolortempmode == IRIS_COLOR_TEMP_MANUL)
 		value = pqlt_cur_setting->colortempvalue;
 	else if (pqlt_cur_setting->pq_setting.cmcolortempmode == IRIS_COLOR_TEMP_AUTO)
 		value = pqlt_cur_setting->cctvalue;
-
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	if (pcfg->lut_mode == SINGLE_MODE) {
+		if (pqlt_cur_setting->pq_setting.cmcolortempmode == IRIS_COLOR_TEMP_OFF) {
+			if (pqlt_cur_setting->pq_setting.cmcolorgamut == 0) 
+				value = pcfg->P3_color_temp;
+			else if (pqlt_cur_setting->pq_setting.cmcolorgamut == 1)
+				value = pcfg->sRGB_color_temp;
+			else if (pqlt_cur_setting->pq_setting.cmcolorgamut == 2)
+				value = pcfg->sdr2hdr_color_temp;
+			else if (pqlt_cur_setting->pq_setting.cmcolorgamut == 3)
+				value = pcfg->hdr_color_temp;
+			else
+				value = 7350;
+		}
+	}
+#endif
 
 	if(value > iris_max_color_temp)
 		value = iris_max_color_temp;
@@ -488,6 +591,92 @@ int iris_cm_ratio_set(struct iris_update_ipopt *popt, uint8_t skip_last)
 	index = (value - IRIS_CCT_MIN_VALUE)/25;
 	xvalue = iris_color_temp_x_get(index);
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	if (pqlt_cur_setting->pq_setting.cmcolorgamut == 0) 
+		value_default = pcfg->P3_color_temp;
+	else if (pqlt_cur_setting->pq_setting.cmcolorgamut == 1)
+		value_default = pcfg->sRGB_color_temp;
+	else if (pqlt_cur_setting->pq_setting.cmcolorgamut == 2)
+		value_default = pcfg->sdr2hdr_color_temp;
+	else if (pqlt_cur_setting->pq_setting.cmcolorgamut == 3)
+		value_default = pcfg->hdr_color_temp;
+	else
+		value_default = 7350;
+	if(value_default > iris_max_color_temp)
+		value_default = iris_max_color_temp;
+	else if(value_default < iris_min_color_temp)
+		value_default = iris_min_color_temp;
+
+	index_default = (value_default - IRIS_CCT_MIN_VALUE)/25;
+	xvalue_default = iris_color_temp_x_get(index_default);
+	//pr_info("cm color temperature default CCT=%d, xvalue_default = %d\n", value_default, xvalue_default);
+
+	
+	if (pcfg->lut_mode == SINGLE_MODE) {
+		psopt = iris_find_ip_opt(IRIS_IP_DPP, 0x40);
+		data =(uint32_t *)psopt->cmd[0].payload;
+		// 2019-04-19 add by pixelwork for PQ begin
+		if (pqlt_cur_setting->pq_setting.readingmode != 0)
+			dwOffSet = 0xB00;
+		// 2019-04-19 add by pixelwork for PQ end
+		if ( (xvalue >= iris_max_x_value) && ( xvalue < xvalue_default )) {
+			ratio = ((xvalue - iris_max_x_value)*10000)/(xvalue_default - iris_max_x_value);
+			for (i=0; i<3; i++) {
+				fGainRGB[i] = (iris_csc_gain_buf[pqlt_cur_setting->pq_setting.cmcolorgamut*18 +9 + i] * ( 10000 - ratio ) + ratio*10000)/10000;
+			}
+		} else if( (xvalue <=  iris_min_x_value) && (xvalue >= xvalue_default) ) {
+			ratio = ((xvalue - xvalue_default)*10000)/(iris_min_x_value - xvalue_default);
+			for (i=0; i<3; i++) {
+				fGainRGB[i] = (10000 - ratio) + (iris_csc_gain_buf[pqlt_cur_setting->pq_setting.cmcolorgamut*18 + i]*ratio)/10000;
+			}
+		}
+		for (i=0; i<9; i++) {
+			if ( i % 3 == 0 ) {
+				nCSCCoffValue[i] = (m_awContrastBuffer[i] * fGainRGB[1])/10000;
+			}
+			else if ( i % 3 == 1 ) {
+				nCSCCoffValue[i] = (m_awContrastBuffer[i] * fGainRGB[2])/10000;
+			}
+			else {
+				nCSCCoffValue[i] = (m_awContrastBuffer[i] * fGainRGB[0])/10000;
+			}
+		// 2019-04-19 add by pixelwork for PQ begin
+			if (pqlt_cur_setting->pq_setting.readingmode != 0)
+				nCSCCoffValue[i] = (nCSCCoffValue[i] * 8281) / 10000;
+		}
+		for (i=0; i<3; i++) {
+			data[i+8] = (dwOffSet * fGainRGB[i])/10000;
+		}
+		// 2019-04-19 add by pixelwork for PQ end
+		data[3] = nCSCCoffValue[3] << 16;
+		data[5] = nCSCCoffValue[7] << 16;
+		data[6] = nCSCCoffValue[2];
+		len = iris_init_update_ipopt_t(
+			popt, IP_OPT_MAX, IRIS_IP_DPP, 0x40, 0x40, skip_last);
+	} else {
+		if (xvalue == iris_min_x_value) {
+			tablesel = 0;
+			regvalue = tablesel |0x02;
+		} else if( (xvalue < iris_min_x_value) && ( xvalue >= IRIS_X_6500K )) {
+			tablesel = 0;
+			ratio = ((xvalue - IRIS_X_6500K)*16383)/(iris_min_x_value - IRIS_X_6500K);
+			regvalue = tablesel | (ratio<<16);
+		} else if( (xvalue >= iris_max_x_value) && (xvalue < IRIS_X_6500K) ) {
+			tablesel = 1;
+			ratio = ((xvalue - iris_max_x_value)*16383)/(IRIS_X_6500K - iris_max_x_value);
+			regvalue = tablesel | (ratio<<16);
+		}
+
+		regval.ip = IRIS_IP_CM;
+		regval.opt_id = 0xfd;
+		regval.mask = 0xffffffff;
+		regval.value = regvalue;
+
+		iris_update_bitmask_regval_nonread(&regval, false);
+		len = iris_init_update_ipopt_t(
+			popt, IP_OPT_MAX, IRIS_IP_CM, 0xfd, 0xfd, skip_last);
+	}
+#else
 	if (xvalue == iris_min_x_value) {
 		tablesel = 0;
 		regvalue = tablesel |0x02;
@@ -509,6 +698,7 @@ int iris_cm_ratio_set(struct iris_update_ipopt *popt, uint8_t skip_last)
 	iris_update_bitmask_regval_nonread(&regval, false);
 	len = iris_init_update_ipopt_t(
 		popt, IP_OPT_MAX, IRIS_IP_CM, 0xfd, 0xfd, skip_last);
+#endif
 	pr_info("cm color temperature value=%d\n", value);
 	return len;
 }
@@ -527,8 +717,13 @@ void iris_cm_colortemp_mode_set(u32 mode)
 		iris_init_ipopt_ip(popt,  IP_OPT_MAX);
 		regval.ip = IRIS_IP_CM;
 		regval.opt_id = 0xfc;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		regval.mask = 0x00000031;
+		regval.value = (mode == 0)?0x00000020:0x00000011;
+#else
 		regval.mask = 0x00000020;
 		regval.value = (mode == 0)?0x00000020:0x00000000;
+#endif
 		len = iris_capture_disable_pq(popt, &skiplast);
 		if (mode == IRIS_COLOR_TEMP_OFF) {
 			iris_update_ip_opt(popt, IP_OPT_MAX, IRIS_IP_EXT,
@@ -540,6 +735,18 @@ void iris_cm_colortemp_mode_set(u32 mode)
 		}
 		iris_init_update_ipopt_t(popt, IP_OPT_MAX, IRIS_IP_DPP,
 				0xfe, 0xfe, 0x01);
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		if (mode > IRIS_COLOR_TEMP_OFF || pcfg->lut_mode == SINGLE_MODE)
+			len = iris_cm_ratio_set(popt, 0x01);
+
+		if (pqlt_cur_setting->source_switch == 2) {
+			pqlt_cur_setting->source_switch = 0;
+		}
+		if (pcfg->lut_mode == SINGLE_MODE) {
+			regval.mask = 0x00000020;
+			regval.value = (mode == 0)?0x00000020:0x00000000;
+		}
+#else
 		if (pcfg->lut_mode == INTERPOLATION_MODE) {
 
 			if (mode > IRIS_COLOR_TEMP_OFF)
@@ -557,6 +764,7 @@ void iris_cm_colortemp_mode_set(u32 mode)
 					regval.value |= 0x00000011;
 			}
 		}
+#endif
 		iris_update_bitmask_regval_nonread(&regval, false);
 		len = iris_init_update_ipopt_t(popt, IP_OPT_MAX, IRIS_IP_CM,
 				0xfc, 0xfc, skiplast);
@@ -573,12 +781,16 @@ void iris_cm_color_temp_set(void)
 	bool skiplast = 0;
 	int len;
 	struct iris_update_ipopt popt[IP_OPT_MAX];
+#if !defined(CONFIG_LONGCHEER_SDM660_PROJS)
 	struct iris_cfg *pcfg = iris_get_cfg();
+#endif
 	/*struct quality_setting *pqlt_cur_setting = & iris_setting.quality_cur;*/
 
 	/*do not have color temp function for single mode*/
+#if !defined(CONFIG_LONGCHEER_SDM660_PROJS)
 	if (pcfg->lut_mode == SINGLE_MODE)
 		return;
+#endif
 
 	/*if(pqlt_cur_setting->pq_setting.cmcolorgamut == 0) {*/
 		iris_init_ipopt_ip(popt,  IP_OPT_MAX);
@@ -670,6 +882,10 @@ void iris_cm_color_gamut_set(u32 level)
 
 	/*do not generate lut table for source switch.*/
 	if (pqlt_cur_setting->source_switch == 0) {
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		if (pcfg->lut_mode == SINGLE_MODE)
+			len = iris_cm_ratio_set(popt, 0x01);
+#endif
 		iris_update_bitmask_regval_nonread(&regval, false);
 		len = iris_init_update_ipopt_t(popt, IP_OPT_MAX, IRIS_IP_CM,
 				0xfc, 0xfc, skiplast);
@@ -964,6 +1180,11 @@ void iris_reading_mode_set(u32 level)
 	struct iris_update_ipopt popt[IP_OPT_MAX];
 	struct quality_setting *pqlt_cur_setting = &iris_setting.quality_cur;
 	bool cm_csc_enable = true;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	// 2019-04-19 add by pixelwork for PQ begin
+	struct iris_cfg *pcfg = iris_get_cfg();
+	// 2019-04-19 add by pixelwork for PQ end
+#endif
 
 	/*only take affect when sdr2hdr bypass */
 	if (pqlt_cur_setting->pq_setting.sdr2hdr == SDR2HDR_Bypass) {
@@ -980,8 +1201,18 @@ void iris_reading_mode_set(u32 level)
 
 		iris_update_ip_opt(popt, IP_OPT_MAX, IRIS_IP_CM,
 				locallevel, 0x01);
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		// 2019-04-19 add by pixelwork for PQ begin
+		if (pcfg->lut_mode == SINGLE_MODE)
+			len = iris_cm_ratio_set(popt, skiplast);
+		else
+			len = iris_update_ip_opt(popt, IP_OPT_MAX, IRIS_IP_DPP,
+					locallevel, skiplast);
+		// 2019-04-19 add by pixelwork for PQ end
+#else
 		len = iris_update_ip_opt(popt, IP_OPT_MAX, IRIS_IP_DPP,
 				locallevel, skiplast);
+#endif
 
 		len = iris_capture_enable_pq(popt, len);
 		iris_update_pq_opt(popt, len);
@@ -1056,9 +1287,11 @@ void iris_maxcll_lut_set(void)
 
 	iris_init_ipopt_ip(popt,  IP_OPT_MAX);
 	len = iris_capture_disable_pq(popt, &skiplast);
+#if !defined(CONFIG_LONGCHEER_SDM660_PROJS)
 	/*Set skiplast=0 due to iris_capture_enable_pq() do nothing*/
 	if (!iris_dynamic_power_get() && iris_skip_dma)
 		skiplast = 0;
+#endif
 	len = iris_update_ip_opt(popt, IP_OPT_MAX, IRIS_IP_EXT, 0xa0, skiplast);
 	len = iris_capture_enable_pq(popt,len);
 	iris_update_pq_opt(popt, len);
@@ -1146,9 +1379,6 @@ void iris_sdr2hdr_level_set(u32 level)
 	if (pqlt_cur_setting->pq_setting.readingmode != 0)
 		cm_csc = 0x41;
 
-	//shadow_iris_require_yuv_input = iris_require_yuv_input;
-	//shadow_iris_HDR10 = iris_HDR10;
-	//shadow_iris_HDR10_YCoCg = iris_HDR10_YCoCg;
 	if ((level <= ICtCpIn_YCbCr) && (level >= HDR10In_ICtCp)) {
 		/*Not change iris_require_yuv_input due to magic code in ioctl.*/
 		shadow_iris_HDR10 = true;
@@ -1240,6 +1470,10 @@ void iris_sdr2hdr_level_set(u32 level)
 		if (pqlt_cur_setting->pq_setting.cmcolortempmode > IRIS_COLOR_TEMP_OFF)
 			/*change ratio when source switch*/
 			len = iris_cm_ratio_set(popt, 0x01);
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	} else {
+		len = iris_cm_ratio_set(popt, 0x01);
+#endif
 	}
 
 	regval.ip = IRIS_IP_CM;
@@ -1247,7 +1481,11 @@ void iris_sdr2hdr_level_set(u32 level)
 	if (pcfg->lut_mode == INTERPOLATION_MODE) {
 		regval.mask = 0x00000031;
 		regval.value = (pqlt_cur_setting->pq_setting.cmcolortempmode == 0)
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+						? 0x00000020 : 0x00000011;
+#else
 						? 0x00000031 : 0x00000011;
+#endif
 	} else {
 		regval.mask = 0x0000002c;
 		regval.value = pqlt_cur_setting->pq_setting.cmcolorgamut << 2;
@@ -1411,8 +1649,12 @@ void iris_dbc_bl_user_set(u32 value)
 	iris_init_ipopt_ip(popt,  IP_OPT_MAX);
 	/*if ((!iris_dynamic_power_get())
 	&& (iris_lce_power_status_get()))*/
+#if !defined(CONFIG_LONGCHEER_SDM660_PROJS)
 	skiplast = 1;
-	
+#else
+	len = iris_capture_disable_lce(popt, &skiplast);
+#endif
+
 	//regvalue = (value * 0xfff) / 0xff;
 	regvalue = value;
 
@@ -1427,9 +1669,13 @@ void iris_dbc_bl_user_set(u32 value)
 
 	/*if ((!iris_dynamic_power_get())
 		&& (iris_lce_power_status_get()))*/
+#if !defined(CONFIG_LONGCHEER_SDM660_PROJS)
 	if (!iris_skip_dma)
 		len = iris_init_update_ipopt_t(popt, IP_OPT_MAX, IRIS_IP_DMA,
 					0xe3, 0xe3, 0);
+#else
+	len = iris_capture_enable_lce(popt, len);
+#endif
 
 	iris_update_pq_opt(popt, len);
 
@@ -1441,6 +1687,9 @@ void iris_dbc_led0d_gain_set(u32 value)
 	int len;
 	struct iris_update_ipopt popt[IP_OPT_MAX];
 	struct iris_update_regval regval;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	bool skiplast = 0;
+#endif
 
 	iris_init_ipopt_ip(popt,  IP_OPT_MAX);
 
@@ -1451,11 +1700,19 @@ void iris_dbc_led0d_gain_set(u32 value)
 
 	iris_update_bitmask_regval_nonread(&regval, false);
 	len = iris_init_update_ipopt_t(popt, IP_OPT_MAX, IRIS_IP_DBC,
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+			regval.opt_id, regval.opt_id, skiplast);
+#else
 			regval.opt_id, regval.opt_id, 1);
 
 	if (!iris_skip_dma)
 		len = iris_init_update_ipopt_t(popt, IP_OPT_MAX, IRIS_IP_DMA,
 					0xe3, 0xe3, 0);
+#endif
+
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	len = iris_capture_enable_lce(popt, len);
+#endif
 
 	iris_update_pq_opt(popt, len);
 
@@ -1465,8 +1722,9 @@ void iris_dbc_led0d_gain_set(u32 value)
 /*****************
 ** only for vv OLED panel
 ******************/
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
 extern int fih_set_fs_curr(int fs_curr);
-
+#endif
 void iris_panel_nits_set(u32 bl_ratio, bool bSystemRestore, int level)
 {
 	struct dcs_cmd_req cmdreq;
@@ -1508,6 +1766,7 @@ void iris_panel_nits_set(u32 bl_ratio, bool bSystemRestore, int level)
 		break;
 	}
 
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
 	if (bSystemRestore) {
 		if (pcfg->fs_curr == 1) {
 			msleep(1);
@@ -1521,6 +1780,7 @@ void iris_panel_nits_set(u32 bl_ratio, bool bSystemRestore, int level)
 			pcfg->fs_curr = 1;
 		}
 	}
+#endif
 
 	pr_err("%s: bl_level=0x%x, bSystemRestore=%d\n",
 			__func__, bl_level, bSystemRestore);
@@ -1553,7 +1813,11 @@ void iris_hdr_csc_prepare(void)
 		pr_debug("AP csc prepare.\n");
 		iris_capture_ctrl_en = true;
 		iris_init_ipopt_ip(popt, IP_OPT_MAX);
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		if (!iris_dynamic_power_get() && !iris_skip_dma)
+#else
 		if (!iris_dynamic_power_get())
+#endif
 			skiplast = 1;
 
 		len = iris_init_update_ipopt_t(popt, IP_OPT_MAX, IRIS_IP_PWIL,
@@ -1581,14 +1845,26 @@ void iris_hdr_csc_complete(int step)
 
 	ATRACE_BEGIN(__func__);
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	if (step == 0 || step == 1 || step == 3 || step == 4) {
+#else
 	if (step == 0 || step == 2) {
+#endif
 		pr_info("AP csc start.\n");
 		iris_require_yuv_input = shadow_iris_require_yuv_input;
 		iris_HDR10 = shadow_iris_HDR10;
 		iris_HDR10_YCoCg = shadow_iris_HDR10_YCoCg;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		if (step == 4)
+#else
 		if (step == 0)
+#endif
 			goto end;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	} else if (step == 5 || step == 6) {
+#else
 	} else if (step == 1) {
+#endif
 		struct iris_cfg *pcfg = pcfg = iris_get_cfg();
 		ATRACE_BEGIN("iris_wait_frame_ready");
 		reinit_completion(&pcfg->frame_ready_completion);

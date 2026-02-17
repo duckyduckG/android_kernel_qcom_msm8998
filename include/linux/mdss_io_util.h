@@ -112,4 +112,8 @@ int mdss_i2c_byte_read(struct i2c_client *client, uint8_t slave_addr,
 int mdss_i2c_byte_write(struct i2c_client *client, uint8_t slave_addr,
 			uint8_t reg_offset, uint8_t *value);
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+int mdss_prim_panel_fb_unblank(int timeout);
+#endif
+
 #endif /* __MDSS_IO_UTIL_H__ */

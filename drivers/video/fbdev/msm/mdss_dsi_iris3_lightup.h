@@ -11,7 +11,9 @@
 
 #define IRIS_CHIP_CNT   2
 /*workaround for checking rx error*/
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
 #define IRIS_CHECK_DPHY_STATE
+#endif
 #define IRIS3_MIPI_TEST
 
 /*use to parse dtsi cmd list*/
@@ -107,11 +109,16 @@ struct iris_cfg {
 	uint8_t power_mode;
 	uint8_t valid;			/* 0: none, 1: parse ok, 2: minimum light up, 3. full light up */
 	uint8_t lut_mode;
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
 	uint8_t fs_curr;
+#endif
 	uint32_t add_last_flag;
 	uint32_t add_on_last_flag;	/* panel on packet size */
 	uint32_t add_cont_last_flag;	/* cont-splash packet size */
 	uint32_t add_pt_last_flag;		/* panel on finished or cont-splash finished packet size */
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	uint32_t add_pt_cont_last_flag;	/* pt after cont-splash packet size */
+#endif
 	uint32_t split_pkt_size;
 	uint32_t lut_cmds_cnt;
 	uint32_t none_lut_cmds_cnt;
@@ -133,6 +140,15 @@ struct iris_cfg {
 	struct iris_out_cmds iris_cmds;
 	uint32_t min_color_temp;
 	uint32_t max_color_temp;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	uint32_t P3_color_temp;
+	uint32_t sRGB_color_temp;
+	uint32_t sdr2hdr_color_temp;
+	uint32_t hdr_color_temp;
+	u8 rx_mode;
+	u8 tx_mode;
+	int pwil_mode;
+#endif
 	struct work_struct cont_splash_work;
 	struct completion frame_ready_completion;
 };
@@ -171,6 +187,16 @@ void iris_lightoff(
 		struct dsi_panel_cmds *off_cmds);
 
 void iris_send_ipopt_cmds(int32_t ip, int32_t opt_id);
+
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+/*modify by pixelworks for disable px8418 when panel off 20190621 begin*/
+void iris_lightoff_pre(void);
+/*modify by pixelworks for disable px8418 when panel off 20190621 end*/
+
+void iris_send_cmd_to_panel(
+		struct mdss_dsi_ctrl_pdata *ctrl,
+		struct dsi_panel_cmds *cmds);
+#endif
 
 int32_t iris_dsi_get_cmd_comp(
 		struct iris_cfg *plgtup_cfg, int32_t ip,
@@ -229,5 +255,6 @@ void iris_write_dphy_err_proc(struct mdss_dsi_ctrl_pdata *ctrl);
 
 void iris_read_chip_id(void);
 void iris_read_power_mode(struct mdss_dsi_ctrl_pdata *ctrl);
+struct iris_ip_opt *iris_find_ip_opt(uint8_t ip, uint8_t opt_id);
 
 #endif

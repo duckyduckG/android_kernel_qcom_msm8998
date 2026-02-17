@@ -703,7 +703,13 @@ static u32 iris_pt_add_cmd(
 	}
 
 	for (i = 0; i < sum; i++) {
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		/*modify by pixelworks  20190621 begin*/
+		wait = dsi_cmd->dchdr.wait;
+		/*modify by pixelworks  20190621 end*/
+#else
 		wait = (i == sum - 1) ? dsi_cmd->dchdr.wait : 0;
+#endif
 		iris_add_tx_cmds(ptx_cmd + i, pocp_cmd + i, wait);
 	}
 	return sum;

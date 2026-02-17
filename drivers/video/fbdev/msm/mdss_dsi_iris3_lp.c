@@ -45,7 +45,9 @@ void iris_lp_set(void)
 
 	pcfg = iris_get_cfg();
 	pcfg->abypss_ctrl.abypass_mode = PASS_THROUGH_MODE;
+#if !defined(CONFIG_LONGCHEER_SDM660_PROJS)
 	iris_one_wired_cmd_init(pcfg->ctrl);
+#endif
 }
 
 /* dynamic power gating set */
@@ -186,7 +188,11 @@ int iris_one_wired_cmd_init(struct mdss_dsi_ctrl_pdata *ctrl)
 		return -EINVAL;
 
 	pcfg = iris_get_cfg();
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	one_wired_gpio = ctrl->abyp_gpio;
+#else
 	one_wired_gpio = ctrl->hdr_wakeup_gpio;
+#endif
 
 	pr_info("%s: %d\n", __func__, __LINE__);
 
@@ -211,7 +217,11 @@ void iris_one_wired_cmd_send(
 	u32 start_end_delay = 0, pulse_delay = 0;
 	unsigned long flags;
 	struct iris_cfg *pcfg;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	int one_wired_gpio = ctrl->abyp_gpio;
+#else
 	int one_wired_gpio = ctrl->hdr_wakeup_gpio;
+#endif
 
 	pcfg = iris_get_cfg();
 

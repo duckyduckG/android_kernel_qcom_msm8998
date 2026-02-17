@@ -506,6 +506,9 @@ struct fb_info {
 	} *apertures;
 
 	bool skip_vt_switch; /* no VT switch on suspend/resume required */
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	int blank;
+#endif
 };
 
 static inline struct apertures_struct *alloc_apertures(unsigned int max_num) {

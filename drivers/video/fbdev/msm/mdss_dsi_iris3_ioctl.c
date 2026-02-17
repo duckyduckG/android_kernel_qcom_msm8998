@@ -34,6 +34,11 @@
 
 
 extern struct msmfb_iris_maxcll_info iris_maxcll_lut;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+// 2019-04-11 add by pixelwork begin
+extern u8 panel_mcf_data[128];
+// 2019-04-11 add by pixelwork end
+#endif
 
 static int mdss_mipi_dsi_command_t(struct mdss_panel_data *pdata, void __user *argp)
 {
@@ -453,17 +458,55 @@ static int iris_configure(struct msm_fb_data_type *mfd, u32 type, u32 value)
 		iris_scaler_filter_update(value & 0xf);
 		break;
 	case IRIS_HDR_PREPARE:
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		if ((value == 0) || ((value == 1) && (!iris_get_debug_cap())))
+#else
 		if (value == 3)
 			iris_set_skip_dma(true);
 		if (!iris_get_debug_cap())
+#endif
 			iris_hdr_csc_prepare();
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		else if (value == 3)
+			iris_set_skip_dma(true);
+#endif
 		break;
 	case IRIS_HDR_COMPLETE:
-		if (value == 1 || value == 2)
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		if ((value == 0) || ((value == 1) && (!iris_get_debug_cap()))) {
+			iris_init_HDRchange();
+			iris_hdr_csc_complete(value);
+		} else if (value == 3) {
 			iris_set_skip_dma(false);
+			// Start AP csc change.
+			// Start Iris csc change.
+			iris_init_HDRchange();
+			iris_hdr_csc_complete(value);
+		} else if (value == 4) {
+			// Start AP csc change.
+			iris_init_HDRchange();
+			iris_hdr_csc_complete(value);
+		} else if (value == 5) {
+#else
+		if (value == 1 || value == 2)
+#endif
+			iris_set_skip_dma(false);
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+			// Start Iris csc change.
+			iris_init_HDRchange();
+			iris_hdr_csc_complete(value);
+		} else if (value == 6) {
+			// Start Iris csc change.
+			iris_init_HDRchange();
+			iris_hdr_csc_complete(value);
+		}
+
+		if (value != 4) {
+#else
 		iris_init_HDRchange();
 		iris_hdr_csc_complete(value);
 		if (value == 1 || value == 2) {
+#endif
 			if (pqlt_cur_setting->pq_setting.sdr2hdr == SDR2HDR_Bypass)
 				iris_panel_nits_set(0, true, pqlt_cur_setting->pq_setting.sdr2hdr);
 			else
@@ -478,13 +521,35 @@ static int iris_configure(struct msm_fb_data_type *mfd, u32 type, u32 value)
 		if (value == 0) {
 			iris_parse_lut_cmds(IRIS_FIRMWARE_NAME);
 		} else if (value == 2) {
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+			if (!strcmp(pcfg->name,"pxlw,mdss_iris_cfg_hx83112a_hlt_fhdplus_video"))
+				iris_parse_lut_cmds(IRIS_FIRMWARE_NAME_HLT);
+			else
+				iris_parse_lut_cmds(IRIS_FIRMWARE_NAME);
+#else
 			iris_parse_lut_cmds(IRIS_FIRMWARE_NAME);
+#endif
 			pcfg->valid = 2; /* minimum light up */
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+			pcfg->add_last_flag = pcfg->add_on_last_flag;//pcfg->add_cont_last_flag;
+#else
 			pcfg->add_last_flag = pcfg->add_cont_last_flag;
+#endif
 			iris_send_cont_splash_pkt(IRIS_CONT_SPLASH_KERNEL);
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+			// 2019-04-11 add by pixelwork begin
+			pcfg->add_last_flag = pcfg->add_pt_cont_last_flag;
+			// 2019-04-11 add by pixelwork end
+#else
 			pcfg->add_last_flag = pcfg->add_pt_last_flag;
+#endif
 			pcfg->valid = 3; /* full light up */
 		}
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		// 2019-04-11 add by pixelwork begin
+		pr_info("IRIS load firmware.\n");
+		// 2019-04-11 add by pixelwork end
+#endif
 		break;
 	default:
 		goto error;
@@ -641,6 +706,11 @@ static int iris_configure_get(struct msm_fb_data_type *mfd, u32 type, u32 count,
 	struct iris_cfg *pcfg = iris_get_cfg();
 	struct iris_setting_info *piris_setting = NULL;
 	struct quality_setting *pqlt_cur_setting = NULL;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	// 2019-04-11 add by pixelwork begin
+	int i;
+	// 2019-04-11 add by pixelwork end
+#endif
 
 	piris_setting = iris_get_setting();
 	pqlt_cur_setting = &piris_setting->quality_cur;
@@ -718,9 +788,24 @@ static int iris_configure_get(struct msm_fb_data_type *mfd, u32 type, u32 count,
 	case IRIS_PANEL_NITS:
 		*values = pcfg->panel_nits;
 		break;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	// 2019-04-11 add by pixelwork begin
+	case IRIS_MCF_DATA:
+		for (i = 0; i < count; i++) {
+			values[i] = panel_mcf_data[i];
+		}
+		pr_info("IRIS get panel MCF values\n");
+		break;
+	// 2019-04-11 add by pixelwork end
+#endif
 	case IRIS_DBG_TARGET_REGADDR_VALUE_GET:
 		*values = iris_ocp_read(*values, DSI_HS_MODE);
 		break;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	case IRIS_WORK_MODE:
+		*values = ((int)pcfg->pwil_mode<<16) | ((int)pcfg->tx_mode<<8) | ((int)pcfg->rx_mode);
+		break;
+#endif
 	default:
 		return -EFAULT;
 	}
@@ -862,6 +947,112 @@ static const struct file_operations iris_pq_config_fops = {
 };
 
 static unsigned char g_golden_mcf[] = {
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+204,
+12,
+128,
+129,
+9,
+204,
+0,
+164,
+172,
+61,
+83,
+139,
+50,
+3,
+187,
+133,
+35,
+207,
+12,
+179,
+77,
+165,
+80,
+138,
+100,
+9,
+101,
+50,
+104,
+83,
+148,
+101,
+140,
+64,
+134,
+86,
+140,
+254,
+148,
+24,
+135,
+248,
+139,
+241,
+131,
+181,
+144,
+55,
+48,
+233,
+46,
+174,
+45,
+52,
+47,
+232,
+48,
+101,
+46,
+34,
+51,
+129,
+47,
+117,
+51,
+32,
+219,
+222,
+246,
+227,
+64,
+28,
+247,
+184,
+232,
+96,
+118,
+95,
+124,
+242,
+160,
+1,
+168,
+127,
+253,
+192,
+239,
+183,
+191,
+255,
+224,
+240,
+23,
+192,
+255,
+0,
+0,
+0,
+0,
+0,
+0,
+0,
+0,
+0,
+#else
 204,
 12,
 128,
@@ -962,6 +1153,7 @@ static unsigned char g_golden_mcf[] = {
 0,
 0,
 0,
+#endif
 };
 
 static ssize_t iris_mcf_read(struct file *file, char __user *buff,

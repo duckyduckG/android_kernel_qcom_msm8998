@@ -75,7 +75,7 @@
 #define MSMFB_MDP_PP_GET_FEATURE_VERSION _IOWR(MSMFB_IOCTL_MAGIC, 171, \
 					      struct mdp_pp_feature_version)
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && (defined(CONFIG_PXLW_IRIS3) || defined(PXLW_IRIS3))
+#if (defined(CONFIG_PXLW_IRIS3) || defined(PXLW_IRIS3))
 /*#define PXLW_IRIS3_FPGA */
 
 enum iris_oprt_type {
@@ -157,12 +157,21 @@ enum iris_config_type {
 	IRIS_FW_UPDATE = 73,
 	IRIS_HDR_PREPARE = 90,
 	IRIS_HDR_COMPLETE = 91,
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	// 2019-04-11 add by pixelwork begin
+	IRIS_MCF_DATA = 92,
+	// 2019-04-11 add by pixelwork end
+#endif
 	IRIS_PANEL_NITS = 99,
 
 	IRIS_DBG_TARGET_REGADDR_VALUE_GET = 103,
 	IRIS_DBG_TARGET_REGADDR_VALUE_SET = 105,
 	IRIS_DBG_TARGET_REGADDR_VALUE_SET2 = 112,
 	IRIS_DEBUG_CAP = 113,
+
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	IRIS_WORK_MODE = 126,	// [23-16]: pwil mode, [15-8]: tx mode, [7-0]: rx mode
+#endif
 
 	IRIS_CONFIG_TYPE_MAX
 };

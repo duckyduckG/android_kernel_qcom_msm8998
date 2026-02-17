@@ -26,10 +26,28 @@
 #define IRIS_CHIP_VER_1   1
 #define IRIS_OCP_DIRECT_BUS  (0x0001000C)
 #define IRIS_OCP_HEADER_ADDR_LEN  8
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+// 2019-04-11 add by pixelwork begin
+#define IRIS3_READ_MCF_LIGHTUP
+#define IRIS3_MCF_CRC_CHECK
+// 2019-04-11 add by pixelwork end
 
+/*modify by huxiaobin for iris3  20190411 begin*/
+static struct iris_cfg gcfg = {
+	.chip_id = 1,
+};
+/*modify by huxiaobin for iris3  20190411 end*/
+#else
 static struct iris_cfg gcfg = {0};
-static uint8_t g_cont_splash_type = IRIS_CONT_SPLASH_NONE;
+#endif
 
+static uint8_t g_cont_splash_type = IRIS_CONT_SPLASH_NONE;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+// 2019-04-11 add by pixelwork begin
+u8 panel_mcf_data[128] = {0};
+// 2019-04-11 add by pixelwork end
+u8 iris_lightup_sspp_csc_select = 0;
+#endif
 
 struct iris_cfg *iris_get_cfg(void)
 {
@@ -665,6 +683,7 @@ static int32_t iris_parse_panel_type(
 	return rc;
 }
 
+#if !defined(CONFIG_LONGCHEER_SDM660_PROJS)
 static int32_t iris_parse_lut_mode(
 		struct device_node *np, struct iris_cfg *pcfg)
 {
@@ -687,6 +706,7 @@ static int32_t iris_parse_lut_mode(
 	pr_err("pxlw,lut-mode: %d\n", pcfg->lut_mode);
 	return rc;
 }
+#endif
 
 static int32_t iris_parse_lp_control(
 			struct device_node *np, struct iris_cfg *pcfg)
@@ -737,6 +757,16 @@ static int32_t iris_parse_split_pkt_info(
 	}
 	pr_err("pxlw,add-last-for-splitted-pkt: %d, %d, %d\n", pcfg->add_on_last_flag, pcfg->add_cont_last_flag, pcfg->add_pt_last_flag);
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	rc = of_property_read_u32(np, "pxlw,pt-cont-last-for-per-pkt",
+			&(pcfg->add_pt_cont_last_flag));
+	if (rc) {
+		pcfg->add_pt_cont_last_flag = 2;
+		rc = 0;
+	}
+	pr_err("pxlw,add-last-for-splitted-pkt: %d, %d, %d, %d\n", pcfg->add_on_last_flag, pcfg->add_cont_last_flag, pcfg->add_pt_last_flag, pcfg->add_pt_cont_last_flag);
+#endif
+
 	rc = of_property_read_u32(np, "pxlw,add-vblank-line", &value);
 	if (rc == 0) {
 		pcfg->vblank_line = value;
@@ -770,6 +800,36 @@ static int32_t iris_parse_color_temp_info(struct device_node *np, struct iris_cf
 		return rc;
 	}
 	pr_err("pxlw,max-color-temp: %d\n", pcfg->max_color_temp);
+
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	rc = of_property_read_u32(np, "pxlw,P3-color-temp", &(pcfg->P3_color_temp));
+	if (rc) {
+		pr_err("can not get property: pxlw,P3_color_temp\n");
+		return rc;
+	}
+	pr_err("pxlw,P3_color_temp: %d\n", pcfg->P3_color_temp);
+
+	rc = of_property_read_u32(np, "pxlw,sRGB-color-temp", &(pcfg->sRGB_color_temp));
+	if (rc) {
+		pr_err("can not get property: pxlw,sRGB-color-temp\n");
+		return rc;
+	}
+	pr_err("pxlw,sRGB-color-temp: %d\n", pcfg->sRGB_color_temp);
+
+	rc = of_property_read_u32(np, "pxlw,sdr2hdr-color-temp", &(pcfg->sdr2hdr_color_temp));
+	if (rc) {
+		pr_err("can not get property: pxlw,sdr2hdr-color-temp\n");
+		return rc;
+	}
+	pr_err("pxlw,sdr2hdr-color-temp: %d\n", pcfg->sdr2hdr_color_temp);
+
+	rc = of_property_read_u32(np, "pxlw,hdr-color-temp", &(pcfg->hdr_color_temp));
+	if (rc) {
+		pr_err("can not get property: pxlw,hdr-color-temp\n");
+		return rc;
+	}
+	pr_err("pxlw,hdr-color-temp: %d\n", pcfg->hdr_color_temp);
+#endif
 
 	return rc;
 }
@@ -1007,6 +1067,16 @@ static int32_t iris_parse_cmd_seq_cont_splash(
 				key, pcfg->ctrl_seq_cs + 1);
 }
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+static int32_t iris_parse_tx_mode(
+		struct device_node *np, struct iris_cfg *pcfg)
+{
+	struct mdss_panel_data *pdata = &pcfg->ctrl->panel_data;
+	pcfg->rx_mode = pdata->panel_info.mipi.mode;
+	pcfg->tx_mode = pdata->panel_info.mipi.mode;
+	return 0;
+}
+#endif
 
 static int32_t iris_ip_statics_cal(
 		const uint8_t *data, int32_t len, int32_t *pval)
@@ -1223,6 +1293,9 @@ static int32_t iris_parse_lightup_params(
 		pcfg->add_last_flag = 0;
 		pcfg->add_cont_last_flag = 2;
 		pcfg->add_pt_last_flag = 2;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		pcfg->add_pt_cont_last_flag = 2;
+#endif
 		pcfg->vblank_line = 0;
 	}
 
@@ -1231,6 +1304,12 @@ static int32_t iris_parse_lightup_params(
 		/*use 2500K~7500K if do not define in dtsi*/
 		pcfg->min_color_temp= 2500;
 		pcfg->max_color_temp= 7500;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		pcfg->P3_color_temp= 7350;
+		pcfg->sRGB_color_temp= 7350;
+		pcfg->sdr2hdr_color_temp= 7350;
+		pcfg->hdr_color_temp= 7350;
+#endif
 	}
 
 	rc = iris_parse_cmd_list(lightup_node, pcfg);
@@ -1256,11 +1335,15 @@ static int32_t iris_parse_lightup_params(
 		return -EINVAL;
 	}
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	rc = iris_parse_tx_mode(lightup_node, pcfg);
+#else
 	rc = iris_parse_lut_mode(lightup_node, pcfg);
 	if (rc) {
 		pr_err("parse lut mode error\n");
 		return -EINVAL;
 	}
+#endif
 
 	rc = iris_parse_lp_control(lightup_node, pcfg);
 	if (rc) {
@@ -1306,7 +1389,11 @@ static void __cont_splash_work_handler(struct work_struct *work)
 
 	pcfg->add_last_flag = pcfg->add_cont_last_flag;
 	iris_send_cont_splash_pkt(IRIS_CONT_SPLASH_KERNEL);
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	pcfg->add_last_flag = pcfg->add_pt_cont_last_flag;//pcfg->add_pt_last_flag;
+#else
 	pcfg->add_last_flag = pcfg->add_pt_last_flag;
+#endif
 	pcfg->valid = 3; /* full light up */
 }
 
@@ -1467,7 +1554,6 @@ static int32_t iris_dsi_send_ocp_cmds(
 	uint32_t wait = 0;
 	struct dcs_cmd_req cmdreq;
 	struct dsi_cmd_desc *cmd = NULL;
-//	int i;
 
 	if (!pcmd_comp) {
 		pr_err("cmd list is null\n");
@@ -1483,9 +1569,6 @@ static int32_t iris_dsi_send_ocp_cmds(
 	memset(&cmdreq, 0, sizeof(cmdreq));
 
 	iris_init_cmdreq(ctrl, &cmdreq, pcmd_comp->cmd, pcmd_comp->cnt);
-//   for (i = 0; i < pcmd_comp->cnt; i++)
-//            if (pcmd_comp->cmd[i].dchdr.last)
-//                    pcmd_comp->cmd[i].dchdr.ack = 1;
 	if (DEBUG) {
 		int i = 0;
 		int len = 0;
@@ -1572,7 +1655,7 @@ int32_t  iris_dsi_send_cmds(
 	return 0;
 }
 
-static void iris_send_cmd_to_panel(
+void iris_send_cmd_to_panel(
 		struct mdss_dsi_ctrl_pdata *ctrl,
 		struct dsi_panel_cmds *cmds)
 {
@@ -2144,16 +2227,332 @@ void iris_read_power_mode(struct mdss_dsi_ctrl_pdata *ctrl)
 #ifdef IRIS3_ABYP_LIGHTUP
 	read_cmd_rbuf[0] = iris_dsi_cmds_read_send(ctrl, &panel_cmds) & 0xff;
 #else
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	iris_send_read_cmd_to_panel(ctrl, &panel_cmds, 1, read_cmd_rbuf);
+#else
 	if (iris_abyp_lightup_get() == 0)
 		iris_send_read_cmd_to_panel(ctrl, &panel_cmds, 1, read_cmd_rbuf);
 	else
 		read_cmd_rbuf[0] = iris_dsi_cmds_read_send(ctrl, &panel_cmds) & 0xff;
+#endif
 #endif
 	pcfg->power_mode = read_cmd_rbuf[0];
 
 	pr_err("power mode: 0x%02x\n", pcfg->power_mode);
 }
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+/*modify by shenwenbin for tianma panel read 128bytes 20190505 begin*/
+// 2019-04-11 add by pixelwork begin
+#ifdef IRIS3_READ_MCF_LIGHTUP
+static char tm_21point_cmd0[2] = {0x00, 0x00}; /* DTYPE_DCS_WRITE*/
+static struct dsi_cmd_desc dcs_read_tm_21point_cmd0 = {
+	{DTYPE_DCS_WRITE1, 1, 0, 1, 1, sizeof(tm_21point_cmd0)},
+	tm_21point_cmd0
+};
+
+static char tm_21point_cmd1[2] = {0xf4, 0x00}; /* DTYPE_DCS_READ */
+static struct dsi_cmd_desc dcs_read_tm_21point_cmd1 = {
+	{DTYPE_DCS_READ, 1, 0, 1, 5, sizeof(tm_21point_cmd1)},
+	tm_21point_cmd1
+};
+
+static void mdss_dsi_tm_read_21point_cmd0(struct mdss_dsi_ctrl_pdata *ctrl)
+{
+	struct dcs_cmd_req cmdreq;
+
+	memset(&cmdreq, 0, sizeof(cmdreq));
+	cmdreq.cmds = &dcs_read_tm_21point_cmd0;
+	cmdreq.cmds_cnt = 1;
+	cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL | CMD_REQ_LP_MODE;
+	cmdreq.rlen = 0;
+	cmdreq.cb = NULL;
+
+	iris_panel_cmd_passthrough(ctrl, &cmdreq);
+}
+
+static int mdss_dsi_tm_read_21point_cmd1(struct mdss_dsi_ctrl_pdata *ctrl, u32 mcf_size, u8 *mcf_values)
+{
+	int i = 0;
+	int rc = 0;
+	struct dcs_cmd_req cmdreq;
+#if 0
+	u8 buf_rx[256] = {0};
+	const int package_size = 8;
+
+	for (i = 0; i < mcf_size/package_size; ++i) {
+		/*DIC register have two bytes address,so before read register must write MSB first*/
+		mdss_dsi_tm_read_21point_cmd0(ctrl);
+
+		memset(&cmdreq, 0, sizeof(cmdreq));
+		cmdreq.cmds = &dcs_read_21point_cmd1;
+		cmdreq.cmds_cnt = 1;
+		cmdreq.flags = CMD_REQ_RX | CMD_REQ_COMMIT | CMD_REQ_LP_MODE;
+		cmdreq.rlen = package_size;
+		cmdreq.rbuf = buf_rx;
+		cmdreq.cb = NULL; /* call back */
+		/*
+		 * blocked here, until call back called
+		 */
+
+		iris_panel_cmd_passthrough(ctrl, &cmdreq);
+		memcpy(mcf_values + panel_21point_cmd0[1],
+			buf_rx, package_size);
+
+		panel_21point_cmd0[1] += package_size;
+	}
+#else
+	/*DIC register have two bytes address,so before read register must write MSB first*/
+	mdss_dsi_tm_read_21point_cmd0(ctrl);
+
+	memset(&cmdreq, 0, sizeof(cmdreq));
+	cmdreq.cmds = &dcs_read_tm_21point_cmd1;
+	cmdreq.cmds_cnt = 1;
+	cmdreq.flags = CMD_REQ_RX | CMD_REQ_COMMIT | CMD_REQ_LP_MODE;
+	cmdreq.rlen = mcf_size;
+	cmdreq.rbuf = mcf_values;
+	cmdreq.cb = NULL;
+
+	iris_panel_cmd_passthrough(ctrl, &cmdreq);
+#endif
+
+	for (i = 0; i < mcf_size; ++i) {
+		printk("mcf value[%i] = 0x%02x %d\n", i+1,  mcf_values[i], mcf_values[i]);
+	}
+
+	return rc;
+}
+
+static int iris_read_mcf_tianma(struct mdss_dsi_ctrl_pdata *ctrl, u32 size, u8 *pvalues)
+{
+	int rc = -1;
+
+	rc = mdss_dsi_tm_read_21point_cmd1(ctrl, size, pvalues);
+	pr_err("%s(%d), return: %d\n", __func__, __LINE__, rc);
+
+	return rc;
+}
+/*modify by shenwenbin for tianma panel read 128bytes 20190505 end*/
+
+/*add by shenwenbin for hlt panel read 128bytes 20190505 begin*/
+static char hlt_21point_cmd0[5] = {0xBB, 0x05, 0x80, 0x00, 0x80}; /* DTYPE_DCS_WRITE*/
+static struct dsi_cmd_desc dcs_read_hlt_21point_cmd0 = {
+	{DTYPE_DCS_LWRITE, 1, 0, 1, 5, sizeof(hlt_21point_cmd0)},
+	hlt_21point_cmd0
+};
+
+static char hlt_21point_cmd1[5] = {0xBB, 0x05, 0x80, 0x00, 0x00}; /* DTYPE_DCS_WRITE*/
+static struct dsi_cmd_desc dcs_read_hlt_21point_cmd1 = {
+	{DTYPE_DCS_LWRITE, 1, 0, 1, 5, sizeof(hlt_21point_cmd1)},
+	hlt_21point_cmd1
+};
+
+static char hlt_21point_cmd2[1] = {0xBB}; // DTYPE_DCS_READ 
+static struct dsi_cmd_desc dcs_read_hlt_21point_cmd2 = {
+	{DTYPE_DCS_READ, 1, 0, 1, 5, sizeof(hlt_21point_cmd2)},
+	hlt_21point_cmd2
+};
+
+/*add by shenwenbin for second supply add second addr read mcf  20190716 begin*/
+static char hlt_21point_cmd3[5] = {0xBB, 0x05, 0x00, 0x00, 0x80}; /* DTYPE_DCS_WRITE*/
+static struct dsi_cmd_desc dcs_read_hlt_21point_cmd3 = {
+	{DTYPE_DCS_LWRITE, 1, 0, 1, 5, sizeof(hlt_21point_cmd3)},
+	hlt_21point_cmd3
+};
+
+static char hlt_21point_cmd4[5] = {0xBB, 0x05, 0x00, 0x00, 0x00}; /* DTYPE_DCS_WRITE*/
+static struct dsi_cmd_desc dcs_read_hlt_21point_cmd4 = {
+	{DTYPE_DCS_LWRITE, 1, 0, 1, 5, sizeof(hlt_21point_cmd4)},
+	hlt_21point_cmd4
+};
+/*add by shenwenbin for second supply add second addr read mcf  20190716 end*/
+
+static void mdss_dsi_hlt_read_21point_cmd0(struct mdss_dsi_ctrl_pdata *ctrl)
+{
+	struct dcs_cmd_req cmdreq;
+
+	memset(&cmdreq, 0, sizeof(cmdreq));
+	cmdreq.cmds = &dcs_read_hlt_21point_cmd0;
+	cmdreq.cmds_cnt = 1;
+	cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL | CMD_REQ_LP_MODE;
+	cmdreq.rlen = 0;
+	cmdreq.cb = NULL;
+
+	iris_panel_cmd_passthrough(ctrl, &cmdreq);
+}
+
+static void mdss_dsi_hlt_read_21point_cmd1(struct mdss_dsi_ctrl_pdata *ctrl)
+{
+	struct dcs_cmd_req cmdreq;
+
+	memset(&cmdreq, 0, sizeof(cmdreq));
+	cmdreq.cmds = &dcs_read_hlt_21point_cmd1;
+	cmdreq.cmds_cnt = 1;
+	cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL | CMD_REQ_LP_MODE;
+	cmdreq.rlen = 0;
+	cmdreq.cb = NULL;
+
+	iris_panel_cmd_passthrough(ctrl, &cmdreq);
+}
+
+/*add by shenwenbin for second supply add second addr read mcf  20190716 begin*/
+static void mdss_dsi_hlt_read_21point_cmd3(struct mdss_dsi_ctrl_pdata *ctrl)
+{
+	struct dcs_cmd_req cmdreq;
+
+	memset(&cmdreq, 0, sizeof(cmdreq));
+	cmdreq.cmds = &dcs_read_hlt_21point_cmd3;
+	cmdreq.cmds_cnt = 1;
+	cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL | CMD_REQ_LP_MODE;
+	cmdreq.rlen = 0;
+	cmdreq.cb = NULL;
+
+	iris_panel_cmd_passthrough(ctrl, &cmdreq);
+}
+
+static void mdss_dsi_hlt_read_21point_cmd4(struct mdss_dsi_ctrl_pdata *ctrl)
+{
+	struct dcs_cmd_req cmdreq;
+
+	memset(&cmdreq, 0, sizeof(cmdreq));
+	cmdreq.cmds = &dcs_read_hlt_21point_cmd4;
+	cmdreq.cmds_cnt = 1;
+	cmdreq.flags = CMD_REQ_COMMIT | CMD_CLK_CTRL | CMD_REQ_LP_MODE;
+	cmdreq.rlen = 0;
+	cmdreq.cb = NULL;
+
+	iris_panel_cmd_passthrough(ctrl, &cmdreq);
+}
+
+static unsigned char mdss_dsi_hlt_read_21point_addr1oraddr2(struct mdss_dsi_ctrl_pdata *ctrl)
+{
+        u8 values = 0;
+        u8 read_values[5] = { 0 };
+	struct dcs_cmd_req cmdreq;
+
+        mdss_dsi_hlt_read_21point_cmd3(ctrl);
+        mdss_dsi_hlt_read_21point_cmd4(ctrl);
+
+        memset(&cmdreq, 0, sizeof(cmdreq));
+        cmdreq.cmds = &dcs_read_hlt_21point_cmd2;
+        cmdreq.cmds_cnt = 1;
+        cmdreq.flags = CMD_REQ_RX | CMD_REQ_COMMIT | CMD_REQ_LP_MODE;
+        cmdreq.rlen = 5;
+        cmdreq.rbuf = read_values;
+        cmdreq.cb = NULL;
+
+        iris_panel_cmd_passthrough(ctrl, &cmdreq);
+        values = read_values[4];
+        return values;        
+}
+
+static void mdss_dsi_hlt_read_21point_addr1(struct mdss_dsi_ctrl_pdata *ctrl, u32 mcf_size, u8 *mcf_values)
+{
+        int offset_address = 0;
+        u8 read_values[5] = { 0 };
+	struct dcs_cmd_req cmdreq;
+
+        for(offset_address = 0; offset_address < mcf_size; offset_address++){                
+            mdss_dsi_hlt_read_21point_cmd0(ctrl);
+            mdss_dsi_hlt_read_21point_cmd1(ctrl);
+
+            memset(&cmdreq, 0, sizeof(cmdreq));
+            cmdreq.cmds = &dcs_read_hlt_21point_cmd2;
+            cmdreq.cmds_cnt = 1;
+            cmdreq.flags = CMD_REQ_RX | CMD_REQ_COMMIT | CMD_REQ_LP_MODE;
+            cmdreq.rlen = 5;
+            cmdreq.rbuf = read_values;
+            cmdreq.cb = NULL;
+
+            iris_panel_cmd_passthrough(ctrl, &cmdreq);
+            mcf_values[offset_address] = read_values[4];
+            hlt_21point_cmd0[2] += 1;
+            hlt_21point_cmd1[2] += 1;
+         }
+        
+        hlt_21point_cmd0[2] = 0x80;
+        hlt_21point_cmd1[2] = 0x80;
+
+}
+
+static void mdss_dsi_hlt_read_21point_addr2(struct mdss_dsi_ctrl_pdata *ctrl, u32 mcf_size, u8 *mcf_values)
+{
+        int offset_address = 0;
+        u8 read_values[5] = { 0 };
+	struct dcs_cmd_req cmdreq;
+
+        for(offset_address = 0; offset_address < mcf_size; offset_address++){                
+            mdss_dsi_hlt_read_21point_cmd3(ctrl);
+            mdss_dsi_hlt_read_21point_cmd4(ctrl);
+
+            memset(&cmdreq, 0, sizeof(cmdreq));
+            cmdreq.cmds = &dcs_read_hlt_21point_cmd2;
+            cmdreq.cmds_cnt = 1;
+            cmdreq.flags = CMD_REQ_RX | CMD_REQ_COMMIT | CMD_REQ_LP_MODE;
+            cmdreq.rlen = 5;
+            cmdreq.rbuf = read_values;
+            cmdreq.cb = NULL;
+
+            iris_panel_cmd_passthrough(ctrl, &cmdreq);
+            mcf_values[offset_address] = read_values[4];
+            hlt_21point_cmd3[2] += 1;
+            hlt_21point_cmd4[2] += 1;
+        }
+
+        hlt_21point_cmd3[2] = 0x00;
+        hlt_21point_cmd4[2] = 0x00;
+}
+
+static int mdss_dsi_hlt_read_21point_cmd2(struct mdss_dsi_ctrl_pdata *ctrl, u32 mcf_size, u8 *mcf_values)
+{
+	int i = 0;
+	int rc = 0;
+        u8 addr2_first_values = 0;
+
+        iris_send_cmd_to_panel(ctrl, &ctrl->read_128bytes_cmds);
+
+	/*DIC register have two bytes address,so before read register must write MSB first*/
+        addr2_first_values = mdss_dsi_hlt_read_21point_addr1oraddr2(ctrl);
+
+        printk("swb.%s addr2_first_values = %d \n",__func__,addr2_first_values);
+
+        if( addr2_first_values == 0xFF || addr2_first_values == 0x00 )
+               mdss_dsi_hlt_read_21point_addr1(ctrl, mcf_size, mcf_values); 
+        else
+               mdss_dsi_hlt_read_21point_addr2(ctrl, mcf_size, mcf_values);
+
+	for (i = 0; i < mcf_size; ++i) {
+		printk("mcf value[%i] = 0x%02x %d\n", i,  mcf_values[i], mcf_values[i]);
+	}
+
+	return rc;
+}
+/*add by shenwenbin for second supply add second addr read mcf  20190716 end*/
+
+static int iris_read_mcf_hlt(struct mdss_dsi_ctrl_pdata *ctrl, u32 size, u8 *pvalues)
+{
+	int rc = -1;
+
+	rc = mdss_dsi_hlt_read_21point_cmd2(ctrl, size, pvalues);
+	pr_err("%s(%d), return: %d\n", __func__, __LINE__, rc);
+
+	return rc;
+}
+/*add by shenwenbin for hlt panel read 128bytes 20190505 end*/
+#endif
+
+#ifdef IRIS3_READ_MCF_LIGHTUP
+extern int panel_calibrate_state_get(void);
+extern int panel_calibrate_state_set(int state);
+enum {
+	READ_MCF_INIT = 0,
+	READ_MCF_READY,
+	READ_MCF_DONE,
+	READ_MCF_FAIL,
+};
+#endif
+// 2019-04-11 add by pixelwork end
+#endif
 
 void iris_lightup(
 		struct mdss_dsi_ctrl_pdata *ctrl,
@@ -2165,6 +2564,15 @@ void iris_lightup(
 	uint32_t timeus1 = 0;
 	uint8_t type = 0;
 	struct iris_cfg *pcfg = NULL;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+// 2019-04-11 add by pixelwork begin
+#ifdef IRIS3_READ_MCF_LIGHTUP
+	//int i = 0;                    //modify by shenwenbin for hlt panel read 128bytes 20190505
+	int MCFbyte = 104;   //modify by shenwenbin for hlt panel read 128bytes 20190505
+	int calibrate_state = 0;
+#endif
+// 2019-04-11 add by pixelwork end
+#endif
 
 	pcfg = iris_get_cfg();
 	if (pcfg->valid == 0) {
@@ -2208,8 +2616,76 @@ void iris_lightup(
 	timeus1 = (u32) ktime_to_us(ktime_get()) - (u32)ktime_to_us(ktime1);
 	pr_err("spend time us 0 = %d  time us 1 = %d\n", timeus0, timeus1);
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+#ifdef IRIS3_MIPI_TEST
+// 2019-04-11 add by pixelwork begin
+#ifndef IRIS3_READ_MCF_LIGHTUP
+	iris_read_power_mode(ctrl);
+#endif
+#endif
+
+#ifdef IRIS3_READ_MCF_LIGHTUP
+	calibrate_state = panel_calibrate_state_get();
+	pr_info("IRIS get calibrate state %d\n", calibrate_state);
+	if (calibrate_state == READ_MCF_READY) { //calibration node made by LC
+		int rc = 0;
+//2019-11-27 MCF read stability Start
+		uint32_t DPHYRX_COM_CTRL = 0xf0040a00;
+		uint32_t DPHY_TX_PHY_COMMON_CTRL = 0xf0d00200;
+		u32 DPHYRX_COM_CTRL_value = 0;
+		u32 DPHY_TX_PHY_COMMON_CTRL_value = 0;
+//2019-11-27 MCF read stability End
+#ifdef IRIS3_MCF_CRC_CHECK
+		MCFbyte += 2;
+#endif
+
+//2019-11-27 MCF read stability Start
+		DPHYRX_COM_CTRL_value = iris_ocp_read(DPHYRX_COM_CTRL, DSI_HS_MODE);
+		DPHY_TX_PHY_COMMON_CTRL_value = iris_ocp_read(DPHY_TX_PHY_COMMON_CTRL, DSI_HS_MODE);
+		pr_err("DPHYRX_COM_CTRL_value read back = 0x%x, DPHY_TX_PHY_COMMON_CTRL read back= 0x%x\n", DPHYRX_COM_CTRL_value, DPHY_TX_PHY_COMMON_CTRL_value);
+				iris_ocp_write(DPHYRX_COM_CTRL, 0x960);
+				iris_ocp_write(DPHY_TX_PHY_COMMON_CTRL, 0x960);
+//2019-11-27 MCF read stability End
+		ktime1 = ktime_get();
+		if (!strcmp(pcfg->name,"pxlw,mdss_iris_cfg_ft8719_tianma_fhdplus_video")) {
+			rc = iris_read_mcf_tianma(ctrl, MCFbyte, panel_mcf_data);
+			calibrate_state = READ_MCF_DONE;
+                        /*add by shenwenbin for hlt panel read 128bytes 20190505 begin*/
+			/*for(i = 0; i < MCFbyte; i++)
+				pr_info("tianma[%d] 0x%02x, %d\n", i, panel_mcf_data[i], panel_mcf_data[i]);*/
+                     panel_mcf_data[127] = 0x11; // tianma is 0x11
+			pr_err("IRIS read MCF spend time us  = %d\n",(u32) ktime_to_us(ktime_get()) - (u32)ktime_to_us(ktime1));
+		}
+		if (!strcmp(pcfg->name,"pxlw,mdss_iris_cfg_hx83112a_hlt_fhdplus_video")) {
+			//HLT panel could not read power mode after iris_read_power_mode,
+			//so if read mcf failed, need to be disable iris_read_power_mode(delay is not the solution)
+			rc = iris_read_mcf_hlt(ctrl, MCFbyte, panel_mcf_data);
+			calibrate_state = READ_MCF_DONE;
+
+			/*for(i = 0; i < MCFbyte; i++)
+				pr_info("HLT %x\n",  panel_mcf_data[i]);*/
+			/*add by shenwenbin for hlt panel read 128bytes 20190505 end*/
+                     panel_mcf_data[127] = 0x22; // tianma is 0x22
+			pr_err("IRIS read MCF spend time us  = %d\n",(u32) ktime_to_us(ktime_get()) - (u32)ktime_to_us(ktime1));
+		}
+
+//2019-11-27 MCF read stability Start
+		iris_ocp_write(DPHYRX_COM_CTRL, DPHYRX_COM_CTRL_value);
+		iris_ocp_write(DPHY_TX_PHY_COMMON_CTRL, DPHY_TX_PHY_COMMON_CTRL_value);
+//2019-11-27 MCF read stability Ends
+
+		if (rc) {
+			calibrate_state = READ_MCF_FAIL;
+		}
+		pr_info("IRIS set calibrate state to %d\n", calibrate_state);
+		panel_calibrate_state_set(calibrate_state);
+	}
+#endif
+// 2019-04-11 add by pixelwork end
+#else
 #ifdef IRIS3_MIPI_TEST
 	iris_read_power_mode(ctrl);
+#endif
 #endif
 	pcfg->add_last_flag = pcfg->add_pt_last_flag;
 
@@ -2217,7 +2693,7 @@ void iris_lightup(
 		pr_err("iris on end\n");
 }
 
-
+#if !defined(CONFIG_LONGCHEER_SDM660_PROJS)
 static void iris_quality_setting_off(void)
 {
 	struct iris_setting_info *psetting = NULL;
@@ -2234,7 +2710,7 @@ static void iris_quality_setting_off(void)
 			psetting->quality_cur.pq_setting.cmcolorgamut);
 	}
 }
-
+#endif
 
 /*check whether it is in initial cont-splash packet*/
 static bool iris_check_cont_splash_ipopt(uint8_t ip, uint8_t opt_id)
@@ -2336,6 +2812,16 @@ void iris_send_cont_splash_pkt(uint32_t type)
 	}
 }
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+/*modify by pixelworks for disable px8418 when panel off 20190621 begin*/
+void iris_lightoff_pre(void)
+{
+	iris_send_ipopt_cmds(IRIS_IP_DPORT, 0x8B);
+	mdelay(16);
+}
+/*modify by pixelworks for disable px8418 when panel off 20190621 end*/
+#endif
+
 void iris_lightoff(
 		struct mdss_dsi_ctrl_pdata *ctrl,
 		struct dsi_panel_cmds *off_cmds)
@@ -2349,6 +2835,9 @@ void iris_lightoff(
 	iris_send_cmd_to_panel(ctrl, off_cmds);
 	iris_quality_setting_off();
 	pcfg->valid = 1; /* parse ok */
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	iris_lightup_sspp_csc_select = 1;
+#endif
 }
 
 static void iris_send_update_new_opt(
@@ -2466,7 +2955,7 @@ void iris_update_pq_opt(struct iris_update_ipopt *popt, int len)
 }
 
 
-static struct iris_ip_opt *iris_find_ip_opt(uint8_t ip, uint8_t opt_id)
+struct iris_ip_opt *iris_find_ip_opt(uint8_t ip, uint8_t opt_id)
 {
 	int32_t i = 0;
 	struct iris_cfg *pcfg = NULL;
@@ -2683,7 +3172,14 @@ void iris_display_prepare(void)
 	struct iris_cfg *pcfg;
 	pcfg = iris_get_cfg();
 	if (iris_boot == false && pcfg->valid > 0) {
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		if (!strcmp(pcfg->name,"pxlw,mdss_iris_cfg_hx83112a_hlt_fhdplus_video"))
+			iris_parse_lut_cmds(IRIS_FIRMWARE_NAME_HLT);
+		else
+			iris_parse_lut_cmds(IRIS_FIRMWARE_NAME);
+#else
 		iris_parse_lut_cmds(IRIS_FIRMWARE_NAME);
+#endif
 		iris_alloc_seq_space();
 		if (pcfg->cont_splash_enabled) {
 			pcfg->cont_splash_enabled = false;
@@ -2962,3 +3458,13 @@ int iris_cont_splash_debugfs_init(struct msm_fb_data_type *mfd)
 
 	return 0;
 }
+
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+u8 iris_get_lightup_sspp_csc_sel(void) {
+	return iris_lightup_sspp_csc_select;
+}
+
+void iris_set_sspp_csc_sel(u8 sel) {
+	iris_lightup_sspp_csc_select = sel;
+}
+#endif

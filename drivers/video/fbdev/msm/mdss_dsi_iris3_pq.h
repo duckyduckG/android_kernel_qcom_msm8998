@@ -31,6 +31,10 @@ void iris_pq_parameter_init(void);
 
 void iris_peaking_level_set(u32 level);
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+void iris_quality_setting_off(void);
+#endif
+
 void iris_cm_6axis_level_set(u32 level);
 
 void iris_cm_ftc_enable_set(bool enable);

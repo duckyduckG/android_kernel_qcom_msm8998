@@ -39,6 +39,11 @@ enum {
 
 struct msm_fb_data_type *g_mfd;
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+//Begin: Added by xiewei for iris3 CT value 20190927
+int iris3_CT_value = -1;
+//End: Added by xiewei 20190927
+#endif
 
 void mdss_dsi_iris_init(struct msm_fb_data_type *mfd)
 {
@@ -150,10 +155,12 @@ static void iris_ambient_lut_init(void)
 	iris_ambient_lut.ambient_bl_ratio = 0;
 	iris_ambient_lut.lut_lut2_payload = &lut_lut2;
 
+#if !defined(CONFIG_LONGCHEER_SDM660_PROJS)
 	kfree(iris_ambient_lut_buf);
 	iris_ambient_lut_buf = NULL;
 	kfree(dynamic_lut_send_cmd);
 	dynamic_lut_send_cmd = NULL;
+#endif
 }
 
 static void iris_maxcll_lut_init(void)
@@ -162,10 +169,12 @@ static void iris_maxcll_lut_init(void)
 	iris_maxcll_lut.lut_luty_payload = &lut_luty;
 	iris_maxcll_lut.lut_lutuv_payload = &lut_lutuv;
 
+#if !defined(CONFIG_LONGCHEER_SDM660_PROJS)
 	kfree(iris_maxcll_lut_buf);
 	iris_maxcll_lut_buf = NULL;
 	kfree(dynamic_lutuvy_send_cmd);
 	dynamic_lutuvy_send_cmd = NULL;
+#endif
 }
 
 static void iris_lut_out_cmds_init(void)
@@ -185,6 +194,7 @@ static void iris_lut_buf_init(void)
 	pcfg = iris_get_cfg();
 	payload_size = pcfg->split_pkt_size;
 
+#if !defined(CONFIG_LONGCHEER_SDM660_PROJS)
 	kfree(iris_dbc_lut_buf);
 	iris_dbc_lut_buf = NULL;
 	kfree(iris_cm_lut_buf);
@@ -214,6 +224,7 @@ static void iris_lut_buf_init(void)
 	gamma_lut_send_cmd = NULL;
 
 	memset(&iris_lut_param, 0x00, sizeof(iris_lut_param));
+#endif
 
 	iris_lut_out_cmds_init();
 
@@ -274,7 +285,11 @@ static int iris_dbc_lut_read(const u8 *fw_data)
 		dbc_lut_compk_send_cmd = kzalloc(len, GFP_KERNEL);
 
 		iris_lut_param.lut_cmd_cnts_max +=
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+				AB_TABLE * dbc_compk_pkt_cnt*DBC_LEVEL_CNT;
+#else
 				AB_TABLE * dbc_compk_pkt_cnt;
+#endif
 		iris_lut_param.dbc_compk_pkt_cnt = dbc_compk_pkt_cnt;
 	}
 	if (dbc_lut_cabc_dlv_send_cmd == NULL) {
@@ -282,7 +297,11 @@ static int iris_dbc_lut_read(const u8 *fw_data)
 				* dbc_dlv_pkt_cnt * DBC_LEVEL_CNT;
 		dbc_lut_cabc_dlv_send_cmd = kzalloc(len, GFP_KERNEL);
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		iris_lut_param.lut_cmd_cnts_max += dbc_dlv_pkt_cnt*DBC_LEVEL_CNT;
+#else
 		iris_lut_param.lut_cmd_cnts_max += dbc_dlv_pkt_cnt;
+#endif
 		iris_lut_param.dbc_dlv_pkt_cnt = dbc_dlv_pkt_cnt;
 	}
 
@@ -484,7 +503,11 @@ int iris_cm_lut_read(u32 lut_table_index, const u8 *fw_data)
 				* cm_one_lut_pkt_cnt * CM_LUT_NUMBER;
 		cm_lut_send_cmd = kzalloc(len, GFP_KERNEL);
 		iris_lut_param.lut_cmd_cnts_max +=
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+				cm_one_lut_pkt_cnt * CM_LUT_NUMBER;
+#else
 				cm_one_lut_pkt_cnt * CM_LUT_GROUP;
+#endif
 		iris_lut_param.cm_one_lut_pkt_cnt = cm_one_lut_pkt_cnt;
 
 		pr_err("%s, iris_lut_param.lut_cmd_cnts_max = %d\n",
@@ -617,7 +640,11 @@ static int iris_sdr2hdr_lut_read(
 			 * hdr_one_lut_pkt_cnt * SDR2HDR_LUT_GROUP_CNT;
 		sdr2hdr_lut_send_cmd = kzalloc(len, GFP_KERNEL);
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		iris_lut_param.lut_cmd_cnts_max += hdr_one_lut_pkt_cnt*SDR2HDR_LUT_GROUP_CNT;
+#else
 		iris_lut_param.lut_cmd_cnts_max += hdr_one_lut_pkt_cnt;
+#endif
 		iris_lut_param.hdr_one_lut_pkt_cnt = hdr_one_lut_pkt_cnt;
 
 		pr_err("%s, iris_lut_param.lut_cmd_cnts_max = %d\n",
@@ -628,7 +655,11 @@ static int iris_sdr2hdr_lut_read(
 		len = sizeof(struct dsi_cmd_desc)
 				* uv_one_lut_pkt_cnt * SDR2HDR_LUT_GROUP_CNT;
 		sdr2hdr_inv_uv_send_cmd = kzalloc(len, GFP_KERNEL);
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		iris_lut_param.lut_cmd_cnts_max += uv_one_lut_pkt_cnt*SDR2HDR_LUT_GROUP_CNT;
+#else
 		iris_lut_param.lut_cmd_cnts_max += uv_one_lut_pkt_cnt;
+#endif
 		iris_lut_param.uv_one_lut_pkt_cnt = uv_one_lut_pkt_cnt;
 	}
 
@@ -865,7 +896,11 @@ static int iris_scaler1d_lut_read(
 		len = sizeof(struct dsi_cmd_desc)
 			* scaler_one_lut_pkt_cnt * SCALER1D_LUT_NUMBER;
 		scaler1d_lut_send_cmd = kzalloc(len, GFP_KERNEL);
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		iris_lut_param.lut_cmd_cnts_max += scaler_one_lut_pkt_cnt*SCALER1D_LUT_NUMBER;
+#else
 		iris_lut_param.lut_cmd_cnts_max += scaler_one_lut_pkt_cnt;
+#endif
 		iris_lut_param.scaler_one_lut_pkt_cnt = scaler_one_lut_pkt_cnt;
 
 		pr_err("%s lut_cmd_cnts_max = %d scaler_block_pkt_cnt =%d\n",
@@ -983,7 +1018,11 @@ static int iris_gamma_lut_read(
 			* gamma_one_lut_pkt_cnt * GAMMA_LUT_NUMBER;
 		gamma_lut_send_cmd = kzalloc(len, GFP_KERNEL);
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		iris_lut_param.lut_cmd_cnts_max += gamma_one_lut_pkt_cnt*GAMMA_LUT_NUMBER;
+#else
 		iris_lut_param.lut_cmd_cnts_max += gamma_one_lut_pkt_cnt;
+#endif
 		iris_lut_param.gamma_one_lut_pkt_cnt = gamma_one_lut_pkt_cnt;
 
 		pr_err("%s, iris_lut_param.lut_cmd_cnts_max = %d\n",
@@ -1079,11 +1118,33 @@ static int iris_lut_data_read(const u8 *fw_data, size_t fw_size)
 		iris_gamma_lut_check(fw_data);
 		iris_panel_nits_check(fw_data);
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		iris_csc_lut_check(fw_data);
+#endif
 		iris_set_lut_cnt(iris_lut_param.lut_cmd_cnts_max);
 	}
 
 	return IRIS_SUCCESS;
 }
+
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+//Begin: Added by xiewei for iris3 CT value 20190927
+void iris_get_calibration_ct(void){
+	int rc = 0;
+	const struct firmware *fw = NULL;
+
+	rc = request_firmware(&fw, "iris3_ct_value", g_mfd->fbi->dev);
+	if(rc){
+		iris3_CT_value = 7350;
+	}
+	else{
+		sscanf((char*)(fw->data), "%d", &iris3_CT_value);
+		release_firmware(fw);
+	}
+	pr_err("%s: Iris CT Value %d\n", __func__, iris3_CT_value);
+}
+//Begin: Added by xiewei 20190927
+#endif
 
 int iris_parse_lut_cmds(const char *name)
 {
@@ -1092,6 +1153,12 @@ int iris_parse_lut_cmds(const char *name)
 
 	/*init buf before parse. parce once is ok.*/
 	iris_lut_buf_init();
+
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	//Begin: Added by xiewei for iris3 CT value 20190927
+	iris_get_calibration_ct();
+	//End: Added by xiewei 20190927
+#endif
 
 	if (name) {
 		/* Firmware file must be in /system/etc/firmware/ */
@@ -1384,7 +1451,11 @@ void iris_ambient_lut_update(enum LUT_TYPE lutType)
 
 	if (dynamic_lut_send_cmd == NULL) {
 		len = sizeof(struct dsi_cmd_desc)
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+			* hdr_block_pkt_cnt
+#else
 			* hdr_pkt_size * hdr_block_pkt_cnt
+#endif
 				* SDR2HDR_LUT2_BLOCK_NUMBER;
 		dynamic_lut_send_cmd = kzalloc(len, GFP_KERNEL);
 		iris_lut_param.lut_cmd_cnts_max +=
@@ -1506,7 +1577,11 @@ void iris_maxcll_lut_update(enum LUT_TYPE lutType)
 	}
 
 	if (dynamic_lutuvy_send_cmd == NULL) {
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+		dynamic_lutuvy_send_cmd = kzalloc(sizeof(struct dsi_cmd_desc)*hdr_block_pkt_cnt*SDR2HDR_LUTUVY_BLOCK_NUMBER, GFP_KERNEL);
+#else
 		dynamic_lutuvy_send_cmd = kzalloc(sizeof(struct dsi_cmd_desc)*hdr_pkt_size*hdr_block_pkt_cnt*SDR2HDR_LUTUVY_BLOCK_NUMBER, GFP_KERNEL);
+#endif
 		iris_lut_param.lut_cmd_cnts_max+= hdr_block_pkt_cnt*SDR2HDR_LUTUVY_BLOCK_NUMBER;
 		iris_lut_param.hdr_lutuvy_pkt_cnt = hdr_block_pkt_cnt*SDR2HDR_LUTUVY_BLOCK_NUMBER;
 	}

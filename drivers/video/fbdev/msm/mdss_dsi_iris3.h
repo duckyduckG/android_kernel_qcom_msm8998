@@ -11,7 +11,9 @@
 
 #define DSI_DMA_TX_BUF_SIZE	SZ_512K
 #define IRIS_FIRMWARE_NAME	"iris3.fw"
-
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+#define IRIS_FIRMWARE_NAME_HLT	"HLT-iris3.fw"
+#endif
 
 #define DBC_INCOME_BL_SIZE (256 * 4)
 
@@ -80,10 +82,23 @@
 	GAMMA_LUT_SIZE * GAMMA_LUT_NUMBER)
 #define PANEL_NITS_SIZE (2)
 
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+#define CSC_FW_START_ADDR \
+	(PANEL_NITS_FW_START_ADDR + \
+	PANEL_NITS_SIZE)
+
+#define CSC_LUT_SIZE (18 * 4)
+#define CSC_LUT_NUMBER 7
+
+#define IRIS_FW_SIZE \
+	(CSC_FW_START_ADDR + \
+	CSC_LUT_SIZE * CSC_LUT_NUMBER)
+#else
 #define IRIS_FW_SIZE \
 	(GAMMA_FW_START_ADDR + \
 	GAMMA_LUT_SIZE * GAMMA_LUT_NUMBER + \
 	PANEL_NITS_SIZE)
+#endif
 
 /*move begin: the following define from lut.c to here*/
 
@@ -184,6 +199,9 @@ struct ocp_header {
 };
 void iris_dump_packet(u8 *data, int size);
 int iris_parse_lut_cmds(const char *name);
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+void iris_csc_lut_check(const u8 *fw_data);
+#endif
 
 int iris_lut_send
 		(u8 lut_type, u8 lut_table_index,
@@ -282,5 +300,14 @@ void iris_display_prepare(void);
 bool iris_is_valid_cfg(void);
 
 int iris_pcc_set_config(void *cfg_data);
+
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+//Begin: Added by xiewei for iris3 CT value 20190927
+void iris_get_calibration_ct(void);
+//End: Added by xiewei 20190927
+
+u8 iris_get_lightup_sspp_csc_sel(void);
+void iris_set_sspp_csc_sel(u8 sel);
+#endif
 
 #endif
