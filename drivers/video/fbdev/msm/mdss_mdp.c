@@ -30,7 +30,7 @@
 #include <linux/of_address.h>
 #include <linux/pm.h>
 #include <linux/pm_runtime.h>
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 #include <linux/pm_qos.h>
 #endif
 #include <linux/regulator/consumer.h>
@@ -116,7 +116,7 @@ struct mdss_hw mdss_mdp_hw = {
 	.irq_handler = mdss_mdp_isr,
 };
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 static struct pm_qos_request mdss_mdp_irq_lat_pm_qos_request;
 #endif
 
@@ -2252,7 +2252,7 @@ static void mdss_mdp_hw_rev_caps_init(struct mdss_data_type *mdata)
 			mdata->mdp_rev == MDSS_MDP_HW_REV_200)
 		mdss_set_quirk(mdata, MDSS_QUIRK_FMT_PACK_PATTERN);
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	// TODO: suppose other panels do not declare HDR properties.
 	mdss_set_quirk(mdata, MDSS_QUIRK_HDR_SUPPORT_ENABLED);
 #endif
@@ -3104,7 +3104,7 @@ static int mdss_mdp_probe(struct platform_device *pdev)
 	if (rc)
 		pr_err("unable to initialize mdss pp resources\n");
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	mdss_mdp_irq_lat_pm_qos_request.type = PM_QOS_REQ_AFFINE_IRQ;
 	mdss_mdp_irq_lat_pm_qos_request.irq = mdss_mdp_hw.irq_info->irq;
 	pm_qos_add_request(&mdss_mdp_irq_lat_pm_qos_request,
@@ -5597,7 +5597,7 @@ static int mdss_mdp_remove(struct platform_device *pdev)
 		return -ENODEV;
 	pm_runtime_disable(&pdev->dev);
 	mdss_mdp_pp_term(&pdev->dev);
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	pm_qos_remove_request(&mdss_mdp_irq_lat_pm_qos_request);
 #endif
 	mdss_mdp_bus_scale_unregister(mdata);
@@ -5609,7 +5609,7 @@ static int mdss_mdp_remove(struct platform_device *pdev)
 	return 0;
 }
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 void mdss_mdp_irq_lat_pm_qos_update_request(int val)
 {
 	pr_debug("update request %d", val);

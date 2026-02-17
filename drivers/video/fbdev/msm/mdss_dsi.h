@@ -108,6 +108,9 @@ enum dsi_panel_status_mode {
 	ESD_BTA,
 	ESD_REG,
 	ESD_REG_NT35596,
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	ESD_TP, /*add by shenwenbin for ESD check need use TP 20190428 */
+#endif
 	ESD_TE,
 	ESD_MAX,
 };
@@ -429,7 +432,7 @@ struct dsi_err_container {
 	u32 err_cnt;
 	u32 err_time_delta;
 	u32 max_err_index;
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
+#if defined(CONFIG_PXLW_IRIS3)
 	u32 dsi_ack_err_cnt;
 	u32 dsi_ack_err_status;
 #endif
@@ -490,6 +493,9 @@ struct mdss_dsi_ctrl_pdata {
 	struct clk *pixel_clk_rcg;
 	struct clk *vco_dummy_clk;
 	struct clk *byte_intf_clk;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	struct clk *BB_clk2;    //modify by shenwenbin for M690 display 20190312
+#endif
 	u8 ctrl_state;
 	int panel_mode;
 	int irq_cnt;
@@ -510,6 +516,9 @@ struct mdss_dsi_ctrl_pdata {
 	int iovdd_enable;					//SW4-JasonSH-Display-BringUpFT8716U-00+_20170619
 #endif
 	int bklt_ctrl;	/* backlight ctrl */
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	int px8418_reset_gpio;          //modify by shenwenbin for M690 display 20190312
+#endif
 	enum dsi_ctrl_op_mode bklt_dcs_op_mode; /* backlight dcs ctrl mode */
 	bool pwm_pmi;
 	int pwm_period;
@@ -551,6 +560,9 @@ struct mdss_dsi_ctrl_pdata {
 	struct dsi_panel_cmds lp_on_cmds;
 	struct dsi_panel_cmds lp_off_cmds;
 	struct dsi_panel_cmds status_cmds;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	struct dsi_panel_cmds read_128bytes_cmds; /*add by shenwenbin for hlt panel read 128bytes 20190505*/
+#endif
 #if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
 	#ifdef CONFIG_AOD_FEATURE	//SW4-HL-Display-GlanceMode-00+_20170524
 	struct dsi_panel_cmds aod_suspend_cmds;
@@ -728,12 +740,16 @@ struct mdss_dsi_ctrl_pdata {
 
 	bool phy_power_off;
 #if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
- #if defined(CONFIG_PXLW_IRIS3)
+	bool esd_need_reset;
+#endif
+#if defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+	int abyp_gpio;
+	int iris_rst_gpio;
+#endif
 	bool interleave_op_contention;
 	bool bta_error;
  #endif
-	bool esd_need_reset;
-#endif
 };
 
 struct dsi_status_data {
@@ -821,6 +837,11 @@ int mdss_dsi_cmdlist_commit(struct mdss_dsi_ctrl_pdata *ctrl, int from_mdp);
 void mdss_dsi_cmdlist_kickoff(int intf);
 int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl);
 int mdss_dsi_reg_status_check(struct mdss_dsi_ctrl_pdata *ctrl);
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+/*add by shenwenbin for ESD check need use TP 20190428 begin*/
+int mdss_dsi_read_touch_status(struct mdss_dsi_ctrl_pdata *pdata);
+/*add by shenwenbin for ESD check need use TP 20190428 end*/
+#endif
 bool __mdss_dsi_clk_enabled(struct mdss_dsi_ctrl_pdata *ctrl, u8 clk_type);
 void mdss_dsi_ctrl_setup(struct mdss_dsi_ctrl_pdata *ctrl);
 bool mdss_dsi_dln0_phy_err(struct mdss_dsi_ctrl_pdata *ctrl, bool print_en);

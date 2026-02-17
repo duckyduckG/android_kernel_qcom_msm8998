@@ -32,10 +32,10 @@
 
 #if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
 #include "../../../fih/fih_lcm.h"
+#endif
 
 #if defined(CONFIG_PXLW_IRIS3)
 #include "mdss_dsi_iris3.h"
-#endif
 #endif
 
 #define VSYNC_PERIOD 17
@@ -131,7 +131,7 @@ void mdss_dsi_ctrl_init(struct device *ctrl_dev,
 	mutex_init(&ctrl->cmd_mutex);
 	mutex_init(&ctrl->clk_lane_mutex);
 	mutex_init(&ctrl->cmdlist_mutex);
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	mdss_dsi_buf_alloc(ctrl_dev, &ctrl->tx_buf, DSI_DMA_TX_BUF_SIZE);
 #else
 	mdss_dsi_buf_alloc(ctrl_dev, &ctrl->tx_buf, SZ_4K);
@@ -483,7 +483,7 @@ void mdss_dsi_host_init(struct mdss_panel_data *pdata)
 	mdss_dsi_lp_cd_rx(ctrl_pdata);
 
 	/* set DMA FIFO read watermark to 15/16 full */
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x50, 0x33);
 #else
 	MIPI_OUTP((ctrl_pdata->ctrl_base) + 0x50, 0x30);
@@ -1122,7 +1122,7 @@ void mdss_dsi_op_mode_config(int mode,
 void mdss_dsi_cmd_bta_sw_trigger(struct mdss_panel_data *pdata)
 {
 	u32 status;
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	int timeout_us = 20000;
 #else
 	int timeout_us = 10000;
@@ -1548,7 +1548,7 @@ static void mdss_dsi_schedule_dma_cmd(struct mdss_dsi_ctrl_pdata *ctrl)
 
 	pinfo = &ctrl->panel_data.panel_info;
 	v_blank = pinfo->lcdc.v_back_porch + pinfo->lcdc.v_pulse_width;
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	iris_add_vblank(&v_blank);
 #endif
 
@@ -1667,6 +1667,27 @@ int mdss_dsi_bta_status_check(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 
 	return ret;
 }
+
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+/*modify by shenwenbin for LCD ESD check need use TP read status 20190428 begin*/
+int lcd_need_reset = 0;
+int mdss_dsi_read_touch_status(struct mdss_dsi_ctrl_pdata *pdata)
+{
+        //printk("swb.%s lcd_need_reset = %d\n",__func__,lcd_need_reset);
+        if (lcd_need_reset) {
+        
+                pr_err("swb.%s: TP Read back value from panel is need reset panel\n",__func__);
+
+                //lcd_need_reset = 0;
+    
+                return -EINVAL;
+    
+         } else { 
+                return 1;   
+        }
+}
+/*modify by shenwenbin for LCD ESD check need use TP read status 20190428 end*/
+#endif
 
 int mdss_dsi_cmd_reg_tx(u32 data,
 			unsigned char *ctrl_base)
@@ -1801,7 +1822,7 @@ static int mdss_dsi_cmd_dma_tpg_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 	return ret;
 }
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 static void __dsi_fifo_error_handler(struct mdss_dsi_ctrl_pdata *ctrl, bool recovery_needed);
 #endif
 static int mdss_dsi_cmds2buf_tx(struct mdss_dsi_ctrl_pdata *ctrl,
@@ -1829,7 +1850,7 @@ static int mdss_dsi_cmds2buf_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 		if (dchdr->last) {
 			tp->data = tp->start; /* begin of buf */
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 			if (iris_is_valid_cfg())
 				wait = 0;
 			else
@@ -1842,7 +1863,7 @@ static int mdss_dsi_cmds2buf_tx(struct mdss_dsi_ctrl_pdata *ctrl,
 			if (use_dma_tpg)
 				len = mdss_dsi_cmd_dma_tpg_tx(ctrl, tp);
 			else
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 			{
 				ctrl->interleave_op_contention = false;
 				len = mdss_dsi_cmd_dma_tx(ctrl, tp);
@@ -2073,7 +2094,7 @@ do_send:
 		 * its already been configured
 		 * for the requested pkt_size
 		 */
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 		if (iris_is_valid_cfg())
 			pkt_size_cmd.dchdr.ack = 1;
 		else if (pkt_size == ctrl->cur_max_pkt_size)
@@ -3175,18 +3196,20 @@ bool mdss_dsi_ack_err_status(struct mdss_dsi_ctrl_pdata *ctrl)
 			 (status & 0x1008000))
 			return false;
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 		if (iris_is_valid_cfg()) {
 			if (status & 0x01000000)  /* ERROR */
 				ctrl->bta_error = true;
 			if (status & ~0x10000000) { /* ACK */
 				pr_err("%s: status=%x\n", __func__, status);
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS)
 				ctrl->err_cont.dsi_ack_err_cnt++;
 				ctrl->err_cont.dsi_ack_err_status = status;
 				sprintf(page_cnt, "0x%x\n",ctrl->err_cont.dsi_ack_err_cnt);
 				sprintf(page_status, "0x%x\n",ctrl->err_cont.dsi_ack_err_status);
 				fih_awer_cnt_set(page_cnt);
 				fih_awer_status_set(page_status);
+#endif
 			}
 		} else {
 #endif
@@ -3199,7 +3222,7 @@ bool mdss_dsi_ack_err_status(struct mdss_dsi_ctrl_pdata *ctrl)
 		fih_awer_cnt_set(page_cnt);
 		fih_awer_status_set(page_status);
 #endif
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 		}
 #endif
 		ret = true;
@@ -3303,7 +3326,7 @@ static bool mdss_dsi_status(struct mdss_dsi_ctrl_pdata *ctrl)
 		MIPI_OUTP(base + 0x0008, status);
 		pr_err("%s: status=%x\n", __func__, status);
 		ret = true;
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 		ctrl->interleave_op_contention = true;
 #endif
 	}

@@ -26,7 +26,7 @@
 #include "mdss_debug.h"
 #include "mdss_mdp_trace.h"
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 #include "mdss_dsi_iris3.h"
 #endif
 
@@ -1140,7 +1140,7 @@ static void mdss_mdp_video_vsync_intr_done(void *arg)
 
 	ctl_flush_bits = mdss_mdp_ctl_read(ctl, MDSS_MDP_REG_CTL_FLUSH);
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	if (iris_is_valid_cfg()) {
 		spin_lock(&ctx->vsync_lock);
 		list_for_each_entry(tmp, &ctx->vsync_handlers, list) {
@@ -1162,7 +1162,7 @@ static void mdss_mdp_video_vsync_intr_done(void *arg)
 
 	ctx->polling_en = false;
 	complete_all(&ctx->vsync_comp);
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	if (iris_is_valid_cfg())
 		return;
 #endif
@@ -1842,7 +1842,7 @@ static int mdss_mdp_video_display(struct mdss_mdp_ctl *ctl, void *arg)
 	if (mdss_mdp_is_lineptr_supported(ctl))
 		mdss_mdp_video_lineptr_ctrl(ctl, true);
  
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	if (iris_is_valid_cfg()) {
 		struct mdss_data_type *mdata = mdss_mdp_get_mdata();
 		mdss_update_reg_bus_vote(mdata->reg_bus_clt, VOTE_INDEX_HIGH);

@@ -38,7 +38,7 @@
 #include "mdss_mdp_wfd.h"
 #include "mdss_dsi_clk.h"
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 #include "mdss_dsi_iris3_ioctl.h"
 #include "mdss_dsi_iris3_pq.h"
 #include "mdss_dsi_iris3.h"
@@ -1790,7 +1790,7 @@ static int mdss_mdp_commit_cb(enum mdp_commit_stage_type commit_stage,
 		mutex_unlock(&mdp5_data->ov_lock);
 		break;
 	case MDP_COMMIT_STAGE_READY_FOR_KICKOFF:
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 		iris_hdr_csc_frame_ready();
 #endif
 		mutex_lock(&mdp5_data->ov_lock);
@@ -5567,7 +5567,7 @@ static int mdss_mdp_overlay_ioctl_handler(struct msm_fb_data_type *mfd,
 		}
 		ret = mdss_fb_set_panel_ppm(mfd, val);
 		break;
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	case MSMFB_IRIS_OPERATE_CONF:
 		ret = msmfb_iris_operate_conf(mfd, argp);
 		break;
@@ -6666,7 +6666,7 @@ int mdss_mdp_overlay_init(struct msm_fb_data_type *mfd)
 	if (mdss_mdp_pp_overlay_init(mfd))
 		pr_warn("Failed to initialize pp overlay data.\n");
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	mdss_dsi_iris_init(mfd);
 #endif
 	return rc;

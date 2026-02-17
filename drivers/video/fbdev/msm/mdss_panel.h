@@ -921,6 +921,9 @@ struct mdss_panel_info {
 	bool is_pluggable;
 	char display_id[MDSS_DISPLAY_ID_MAX_LEN];
 	bool is_cec_supported;
+#if defined(CONFIG_LONGCHEER_SDM660_PROJS)
+    u32 panel_hwid; //modify by shenwenbin for sleep spi electric leakage 20190429 
+#endif
 
 	/* refer sim_panel_modes enum for different modes */
 	u8 sim_panel_mode;

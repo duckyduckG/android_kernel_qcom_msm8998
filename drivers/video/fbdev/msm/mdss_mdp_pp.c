@@ -22,7 +22,7 @@
 #include <linux/msm-bus.h>
 #include <linux/msm-bus-board.h>
 #include "mdss_mdp_pp_cache_config.h"
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 #include "mdss_debug.h"
 #include "mdss_dsi_iris3.h"
 #endif
@@ -196,7 +196,7 @@ struct mdp_csc_cfg mdp_csc_8bit_convert[MDSS_MDP_MAX_CSC] = {
 		{ 0x0, 0xff, 0x0, 0xff, 0x0, 0xff,},
 		{ 0x10, 0xeb, 0x10, 0xeb, 0x10, 0xeb,},
 	},
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	[MDSS_MDP_CSC_YCoCg] = {
 		0,
 		{
@@ -381,7 +381,7 @@ struct mdp_csc_cfg mdp_csc_10bit_convert[MDSS_MDP_MAX_CSC] = {
 		{ 0x0, 0x3ff, 0x0, 0x3ff, 0x0, 0x3ff,},
 		{ 0x40, 0x3ac, 0x40, 0x3ac, 0x40, 0x3ac,},
 	},
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	[MDSS_MDP_CSC_YCoCg] = {
 		0,
 		{
@@ -881,16 +881,15 @@ int mdss_mdp_csc_setup_data(u32 block, u32 blk_idx, struct mdp_csc_cfg *data)
 	return ret;
 }
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
-#define PIPE_MAX 16 // FIXME
-static bool csc_changed;
-static bool csc_vsync_req;
+#if defined(CONFIG_PXLW_IRIS3)
+static bool csc_changed = false;
+static bool csc_vsync_req = false;
 struct mdp_sspp_csc_conf {
 	struct mdss_mdp_pipe *pipe;
 	struct mdp_csc_cfg *data;
 	u32 csc_type;
 	u32 block;
-} pipe_csc_conf[PIPE_MAX];
+} pipe_csc_conf[MDSS_MDP_MAX_SSPP] = {};
 
 void mdss_mdp_sspp_csc_setup_data(u32 block, struct mdss_mdp_pipe *pipe,
 				  struct mdp_csc_cfg *data)
@@ -947,7 +946,7 @@ static void mdss_mdp_csc_setup_handle_vsync(struct mdss_mdp_ctl *ctl,
 	if (!csc_changed)
 		return;
 	ATRACE_BEGIN(__func__);
-	for (i = 0; i < PIPE_MAX; i++) {
+	for (i = 0; i < MDSS_MDP_MAX_SSPP; i++) {
 		if (pipe_csc_conf[i].pipe && pipe_csc_conf[i].data) {
 			pr_debug("set csc in vsync, pipe %u\n",
 				 pipe_csc_conf[i].pipe->num);
@@ -978,7 +977,7 @@ int mdss_mdp_csc_setup(u32 block, u32 blk_idx, u32 csc_type)
 		return -ERANGE;
 	}
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	csc_type = iris_get_csc_type(csc_type);
 #endif
 
@@ -992,7 +991,7 @@ int mdss_mdp_csc_setup(u32 block, u32 blk_idx, u32 csc_type)
 	return mdss_mdp_csc_setup_data(block, blk_idx, data);
 }
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 static int mdss_mdp_sspp_csc_setup(u32 block, struct mdss_mdp_pipe *pipe)
 {
 	struct mdp_csc_cfg *data;
@@ -1008,7 +1007,7 @@ static int mdss_mdp_sspp_csc_setup(u32 block, struct mdss_mdp_pipe *pipe)
 	else
 		data = &mdp_csc_8bit_convert[csc_type];
 
-	if (pipe->num >= PIPE_MAX) {
+	if (pipe->num >= MDSS_MDP_MAX_SSPP) {
 		pr_err("unexpected pipe num %d\n", pipe->num);
 		return -EINVAL;
 	}
@@ -1028,7 +1027,7 @@ static int mdss_mdp_sspp_csc_setup(u32 block, struct mdss_mdp_pipe *pipe)
 void mdss_mdp_sspp_csc_reset(struct mdss_mdp_pipe *pipe)
 {
 	pr_debug("csc reset pipe %u\n", pipe->num);
-	if (pipe->num >= PIPE_MAX)
+	if (pipe->num >= MDSS_MDP_MAX_SSPP)
 		pr_err("unexpected pipe num %d\n", pipe->num);
 	else
 		pipe_csc_conf[pipe->num].csc_type = MDSS_MDP_MAX_CSC;
@@ -1351,7 +1350,7 @@ static int pp_vig_pipe_setup(struct mdss_mdp_pipe *pipe, u32 *op)
 	    IS_MDSS_MAJOR_MINOR_SAME(mdata->mdp_rev, MDSS_MDP_HW_REV_300)) {
 		if (pipe->src_fmt->is_yuv) {
 			/* TODO: check csc cfg from PP block */
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 			if (iris_is_valid_cfg())
 				mdss_mdp_sspp_csc_setup(MDSS_MDP_BLOCK_SSPP_10, pipe);
 			else
@@ -1392,7 +1391,7 @@ static int pp_vig_pipe_setup(struct mdss_mdp_pipe *pipe, u32 *op)
 		 * is a previously configured pipe need to re-configure
 		 * CSC matrix
 		 */
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 		if (iris_is_valid_cfg())
 			mdss_mdp_sspp_csc_setup(MDSS_MDP_BLOCK_SSPP, pipe);
 		else
@@ -1404,7 +1403,7 @@ static int pp_vig_pipe_setup(struct mdss_mdp_pipe *pipe, u32 *op)
 #endif
 	}
  
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	if (iris_is_valid_cfg()) {
 		pr_debug("csc_changed %d , csc_vsync_req %d\n", csc_changed, csc_vsync_req);
 		if (csc_changed && !csc_vsync_req) {
@@ -1596,7 +1595,7 @@ static int mdss_mdp_qseed2_setup(struct mdss_mdp_pipe *pipe)
 
 	mdss_mdp_pp_get_dcm_state(pipe, &dcm_state);
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	if (iris_is_valid_cfg()) {
 		if (mdata->mdp_rev >= MDSS_MDP_HW_REV_102 && pipe->src_fmt->is_yuv &&
 			!(pipe->src_fmt->chroma_sample == MDSS_MDP_CHROMA_420))
@@ -2675,7 +2674,7 @@ static int pp_dspp_setup(u32 disp_num, struct mdss_mdp_mixer *mixer,
 		ad_flags = 0;
 	}
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	if (iris_is_valid_cfg()) {
 		flags &= ~(PP_FLAGS_DIRTY_PA);
 		if (iris_pcc_set_config(&mdss_pp_res->pcc_disp_cfg[disp_num]) > 0)
@@ -3530,8 +3529,8 @@ int mdss_mdp_pp_init(struct device *dev)
 					MDSS_MDP_REG_VIG_HIST_CTL_BASE;
 			}
 		}
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
-		for (i = 0; i < PIPE_MAX; i++)
+#if defined(CONFIG_PXLW_IRIS3)
+		for (i = 0; i < MDSS_MDP_MAX_SSPP; i++)
 			pipe_csc_conf[i].csc_type = MDSS_MDP_MAX_CSC;
 #endif
 	}

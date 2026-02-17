@@ -22,7 +22,7 @@
 #include "mdss_mdp_trace.h"
 #include "mdss_debug.h"
 
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 #include "mdss_dsi_iris3.h"
 #endif
 
@@ -1128,7 +1128,7 @@ static void mdss_mdp_init_pipe_params(struct mdss_mdp_pipe *pipe)
 	memset(&pipe->layer, 0, sizeof(struct mdp_input_layer));
 
 	pipe->multirect.mode = MDSS_MDP_PIPE_MULTIRECT_NONE;
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	if (iris_is_valid_cfg())
 		mdss_mdp_sspp_csc_reset(pipe);
 #endif
@@ -2704,7 +2704,7 @@ int mdss_mdp_pipe_queue_data(struct mdss_mdp_pipe *pipe,
 		 (ctl->mdata->mixer_switched)) || roi_changed;
 
 	/* apply changes that are common in case of multi rects only once */
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	if (iris_has_HDRchange() || (params_changed && !delayed_programming)) {
 		bool is_realtime = !((ctl->intf_num == MDSS_MDP_NO_INTF)
 				|| pipe->mixer_left->rotator_mode);

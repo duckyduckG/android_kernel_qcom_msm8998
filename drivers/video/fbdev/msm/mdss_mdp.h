@@ -280,7 +280,7 @@ enum mdss_mdp_csc_type {
 	MDSS_MDP_CSC_RGB2YUV_2020FR,
 	MDSS_MDP_CSC_YUV2YUV,
 	MDSS_MDP_CSC_RGB2RGB,
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 	MDSS_MDP_CSC_YCoCg,
 #endif
 	MDSS_MDP_CSC_RGB2RGB_L,
@@ -1849,7 +1849,7 @@ int mdss_mdp_pipe_sspp_setup(struct mdss_mdp_pipe *pipe, u32 *op);
 int mdss_mdp_pp_sspp_config(struct mdss_mdp_pipe *pipe);
 int mdss_mdp_copy_layer_pp_info(struct mdp_input_layer *layer);
 void mdss_mdp_free_layer_pp_info(struct mdp_input_layer *layer);
-#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_PXLW_IRIS3)
+#if defined(CONFIG_PXLW_IRIS3)
 void mdss_mdp_sspp_csc_reset(struct mdss_mdp_pipe *pipe);
 #endif
 
