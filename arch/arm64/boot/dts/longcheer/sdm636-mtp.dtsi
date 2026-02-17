@@ -35,12 +35,7 @@
 &soc {
 	/* add sar ant check by xiaopei at 20190520 i love you start */
 	ant_check {
-		/delete-property/ ant_check,irq_gpio_hb;
 		/delete-property/ ant_check,irq_gpio_mb;
-		compatible = "ant_check";
-        pinctrl-names = "ant_check_irq_state";
-        pinctrl-0 = <&ant_check_irq_state>;
-        ant_check,irq_gpio = <&tlmm 56 0>;
 	};
 };
 
