@@ -66,6 +66,10 @@
 #include <asm/xen/hypervisor.h>
 #include <asm/mmu_context.h>
 
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_FIH_HWCONFIG)
+#include <fih/swid.h>
+#endif
+
 unsigned int boot_reason;
 EXPORT_SYMBOL(boot_reason);
 
@@ -412,6 +416,10 @@ static int __init topology_init(void)
 		cpu->hotpluggable = 1;
 		register_cpu(cpu, i);
 	}
+
+#if defined(CONFIG_FIH_SDM630_SDM660_PROJS) && defined(CONFIG_FIH_HWCONFIG)
+	fih_swid_setup();
+#endif
 
 	return 0;
 }
